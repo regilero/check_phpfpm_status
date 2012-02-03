@@ -1,0 +1,10 @@
+Version 0.3
+* warn and critical thresolds now contains 3 values (minimum idle process, max processes reached, max queue reached)
+* fixed max queue reached
+
+Version 0.2
+* add -s/--servname option, possibility to request by IP with a right Host HTTP header
+* add -d/--debug option
+
+Version 0.1
+* initial commit, work based on check_apache_status.pl by Dennis D. Spreen (dennis at spreendigital.de)

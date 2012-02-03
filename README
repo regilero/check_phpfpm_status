@@ -9,8 +9,7 @@ GPL licence, (c)2012 Leroy Regis
 Script Documentation:
 =====================
 
-Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-m maxProc] [-w <warn_level> -c <crit_level>] [-V] [-d] [-u <url>] [-U user -P pass -r realm]
-
+Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-w <WARN_THRESOLD> -c <CRIT_THRESOLD>] [-V] [-d] [-u <url>] [-U user -P pass -r realm]
 -h, --help
    print this help message
 -H, --hostname=HOST
@@ -20,7 +19,7 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
 -u, --url=URL
    Specific URL to use, instead of the default "http://<hostname or IP>/fpm-status"
 -s, --servername=SERVERNAME
-   ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtulahost in your target
+   ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
 -U, --user=user
    Username for basic auth
 -P, --pass=PASS
@@ -33,27 +32,38 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
    Number of max processes reached (since last check) that should trigger an alert
 -t, --timeout=INTEGER
    timeout in seconds (Default: 15)
--w, --warn=MIN
+-w, --warn=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
    number of available workers that will cause a warning
    -1 for no warning
--c, --critical=MIN
+-c, --critical=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
    number of available workers that will cause an error
    -1 for no CRITICAL
 -V, --version
    prints version number
 
-Example: 
-
-  check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -m 5 -w 1 -c 0 -t 8
-
 Note :
-  The script will return
-    * Without warn and critical options:
-        OK       if we are able to connect to the php-fpm server's status page,
-        CRITICAL if we aren't able to connect to the php-fpm server's status page,,
-    * With warn and critical options:
-        OK       if we are able to connect to the php-fpm server's status page and #available workers > <warn_level>,
-        WARNING  if we are able to connect to the php-fpm server's status page and #available workers <= <warn_level>,
-        CRITICAL if we are able to connect to the php-fpm server's status page and #available workers <= <crit_level>,
-        CRITICAL if we aren't able to connect to the php-fpm server's status page
+  3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
+  - MIN_AVAILABLE_PROCESSES: Working with the number of available (Idle) and working process (Busy). 
+    Generating WARNING and CRITICAL if you do not have enough Idle processes.
+  - PROC_MAX_REACHED: the fpm-status report will show us how many times the max processes were reached sinc start, 
+    this script will record how many time this happended since last check, letting you fix thresolds for alerts
+  - QUEUE_MAX_REACHED: the php-fpm report will show us how many times the max queue was reached since start,
+    this script will record how many time this happended since last check, letting you fix thresolds for alerts
 
+Examples: 
+
+  This will lead to CRITICAL if you have 0 Idle process, or you have reached the max processes 2 times between last check,
+  or you have reached the max queue len 5 times. A Warning will be reached for 1 Idle process only.
+check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -t 8 -w 1,-1,-1 -c 0,2,5
+
+  this will generate WARNING and CRITICAL alerts only on the number of times you have reached the max process
+check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -t 8 -w -1,10,-1 -c -1,20,-1
+
+  theses two equivalents will not generate any alert (if the php-fpm page is reachable) but could be used for graphics
+check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com -w -1,-1,-1 -c -1,-1,-1
+check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com
+ 
+  And this one is a basic starting example
+check_phpfpm_status.pl -H 127.0.0.1 -s nagios.example.com -w 1,1,1 -c 0,2,2
+
+Licence: GNU GPL v3
