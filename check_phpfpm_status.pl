@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # check_phpfpm_status.pl
-# Version : 0.1
+# Version : 0.2
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by 
@@ -25,13 +25,13 @@ use utils qw($TIMEOUT);
 
 
 # Globals
-my $Version='0.1';
+my $Version='0.2';
 my $Name=$0;
 
 my $o_host =        undef;  # hostname 
 my $o_help=         undef;  # want some help ?
 my $o_port=         undef;  # port
-my $o_url =         '';     # url to use, if not the default
+my $o_url =         undef;  # url to use, if not the default
 my $o_user=         undef;  # user for auth
 my $o_pass=         '';     # password for auth
 my $o_realm=        '';     # password for auth
@@ -40,6 +40,8 @@ my $o_warn_level=   undef;  # Number of available slots that will cause a warnin
 my $o_crit_level=   undef;  # Number of available slots that will cause an error
 my $o_timeout=      15;     # Default 15s Timeout
 my $o_maxreach=     undef;  # number of max processes reach since last check
+my $o_debug=        undef;  # debug mode
+my $o_servername=   undef;  # ServerName (host heaéder in http request)
 
 my $TempPath = '/tmp/';     # temp path
 my $MaxUptimeDif = 60*30;   # Maximum uptime difference (seconds), default 30 minutes
@@ -89,12 +91,16 @@ sub help {
    Http port
 -u, --url=URL
    Specific URL to use, instead of the default "http://<hostname or IP>/fpm-status"
+-s, --servername=SERVERNAME
+   ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtulahost in your target
 -U, --user=user
    Username for basic auth
 -P, --pass=PASS
    Password for basic auth
 -r, --realm=REALM
    Realm for basic auth
+-d, --debug
+   Debug mode (show http request response)
 -m, --maxreach=MAX
    Number of max processes reached (since last check) that should trigger an alert
 -t, --timeout=INTEGER
@@ -107,6 +113,11 @@ sub help {
    -1 for no CRITICAL
 -V, --version
    prints version number
+
+Example: 
+
+  check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -m 5 -w 1 -c 0 -t 8
+
 Note :
   The script will return
     * Without warn and critical options:
@@ -125,7 +136,9 @@ sub check_options {
     Getopt::Long::Configure ("bundling");
     GetOptions(
       'h'     => \$o_help,        'help'          => \$o_help,
+      'd'     => \$o_debug,       'debug'         => \$o_debug,
       'H:s'   => \$o_host,        'hostname:s'    => \$o_host,
+      's:s'   => \$o_servername,  'servername:s'  => \$o_servername,
       'u:s'   => \$o_url,         'url:s'         => \$o_url,
       'U:s'   => \$o_user,        'user:s'        => \$o_user,
       'P:s'   => \$o_pass,        'pass:s'        => \$o_pass,
@@ -165,29 +178,60 @@ sub check_options {
 
 check_options();
 
+my $override_ip = $o_host;
 my $ua = LWP::UserAgent->new( 
   protocols_allowed => ['http', 'https'], 
   timeout => $o_timeout
 );
+# we need to enforce the HTTP request is made on the Nagios Host IP and
+# not on the DNS related IP for that domain
+@LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
+# this prevent used only once warning in -w mode
+my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
+
 my $timing0 = [gettimeofday];
 my $response = undef;
 my $url = undef;
 
-if (($o_url =~ m/^http(s?)\:\/\//i) ){
-    $url = $o_url;
+if (!defined($o_url)) {
+    $o_url='/fpm-status';
+} else {
+    # ensure we have a '/' as first char
+    $o_url = '/'.$o_url unless $o_url =~ m(^/)
+}
+
+if (defined($o_servername)) {
+    if (!defined($o_port)) {
+        $url = 'http://' . $o_servername . $o_url;
+    } else {
+        $url = 'http://' . $o_servername . ':' . $o_url;
+    }
 } else {
     if (!defined($o_port)) {
-        $url = 'http://' . $o_host . $o_url.'/fpm-status';
+        $url = 'http://' . $o_host . $o_url;
     } else {
-        $url = 'http://' . $o_host . ':' . $o_port . $o_url.'/fpm-status';
+        $url = 'http://' . $o_host . ':' . $o_port . $o_url;
     }
+}
+if (defined ($o_debug)) {
+    print "\nDEBUG: HTTP url: \n";
+    print $url;
 }
 
 my $req = HTTP::Request->new( GET => $url );
+
+if (defined($o_servername)) {
+    $req->header('Host' => $o_servername);
+}
 if (defined($o_user)) {
     $req->authorization_basic($o_user, $o_pass);
 }
 
+if (defined ($o_debug)) {
+    print "\nDEBUG: HTTP request: \n";
+    print "IP used (better if it's an IP):" . $override_ip . "\n";
+    print $req->as_string;
+}
 $response = $ua->request($req);
 my $timeelapsed = tv_interval ($timing0, [gettimeofday]);
 
@@ -196,8 +240,13 @@ my $PerfData = '';
 
 my $webcontent = undef;
 if ($response->is_success) {
-    $webcontent=$response->content;
-    
+    $webcontent=$response->decoded_content;
+    if (defined ($o_debug)) {
+        print "\nDEBUG: HTTP response:";
+        print $response->status_line;
+        print "\n";
+        print $webcontent;
+    }
     # example of response content expected:
     #pool:                 foobar
     #process manager:      dynamic
@@ -280,8 +329,10 @@ if ($response->is_success) {
         $MaxListenQueue =~ s/^\s+|\s+$//g;
     }
     # Debug
-    #print ("Pool:" . $Pool . "\nAcceptedConn:" . $AcceptedConn . "\nActiveProcesses:" . $ActiveProcesses . " TotalProcesses :".$TotalProcesses . " IdleProcesses :" .$IdleProcesses . "\nMaxActiveProcesses :" . $MaxActiveProcesses . " MaxChildrenReached :" . $MaxChildrenReached . "\nListenQueue :" . $ListenQueue . " ListenQueueLen : " .$ListenQueueLen . " MaxListenQueue: " . $MaxListenQueue ."\n");
-    
+    if (defined ($o_debug)) {
+        print ("\nDEBUG Parse results => Pool:" . $Pool . "\nAcceptedConn:" . $AcceptedConn . "\nActiveProcesses:" . $ActiveProcesses . " TotalProcesses :".$TotalProcesses . " IdleProcesses :" .$IdleProcesses . "\nMaxActiveProcesses :" . $MaxActiveProcesses . " MaxChildrenReached :" . $MaxChildrenReached . "\nListenQueue :" . $ListenQueue . " ListenQueueLen : " .$ListenQueueLen . " MaxListenQueue: " . $MaxListenQueue ."\n");
+    }
+
     my $TempFile = $TempPath.$o_host.'_check_phpfpm_status'.md5_hex($url);
     my $FH;
     
