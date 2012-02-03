@@ -52,7 +52,7 @@ my $phpfpm = 'PHP-FPM'; # Could be used to store version also
 sub show_versioninfo { print "$Name version : $Version\n"; }
 
 sub print_usage {
-  print "Usage: $Name -H <host> [-p <port>] [-t <timeout>] [-w <warn_level> -c <crit_level>] [-V] [-u <url>] [-U user -P pass -r realm]\n";
+  print "Usage: $Name -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-m maxProc] [-w <warn_level> -c <crit_level>] [-V] [-d] [-u <url>] [-U user -P pass -r realm]\n";
 }
 sub nagios_exit {
     my ( $nickname, $status, $message, $perfdata ) = @_;

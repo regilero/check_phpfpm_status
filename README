@@ -1,1 +1,59 @@
-TODO
+CHECK_PHPFPM_STATUS
+===================
+
+Nagios check checking the fpm-status page report from php-fpm. Tracking Idle processes, max processes reached and process queue.
+You can use this script to draw some graphics. Details for centreon graphics are available in the CENTREON_GRAPHICS.txt doc
+PHP-FPM Monitor for Nagios version 0.1
+GPL licence, (c)2012 Leroy Regis
+
+Script Documentation:
+=====================
+
+Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-m maxProc] [-w <warn_level> -c <crit_level>] [-V] [-d] [-u <url>] [-U user -P pass -r realm]
+
+-h, --help
+   print this help message
+-H, --hostname=HOST
+   name or IP address of host to check
+-p, --port=PORT
+   Http port
+-u, --url=URL
+   Specific URL to use, instead of the default "http://<hostname or IP>/fpm-status"
+-s, --servername=SERVERNAME
+   ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtulahost in your target
+-U, --user=user
+   Username for basic auth
+-P, --pass=PASS
+   Password for basic auth
+-r, --realm=REALM
+   Realm for basic auth
+-d, --debug
+   Debug mode (show http request response)
+-m, --maxreach=MAX
+   Number of max processes reached (since last check) that should trigger an alert
+-t, --timeout=INTEGER
+   timeout in seconds (Default: 15)
+-w, --warn=MIN
+   number of available workers that will cause a warning
+   -1 for no warning
+-c, --critical=MIN
+   number of available workers that will cause an error
+   -1 for no CRITICAL
+-V, --version
+   prints version number
+
+Example: 
+
+  check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -m 5 -w 1 -c 0 -t 8
+
+Note :
+  The script will return
+    * Without warn and critical options:
+        OK       if we are able to connect to the php-fpm server's status page,
+        CRITICAL if we aren't able to connect to the php-fpm server's status page,,
+    * With warn and critical options:
+        OK       if we are able to connect to the php-fpm server's status page and #available workers > <warn_level>,
+        WARNING  if we are able to connect to the php-fpm server's status page and #available workers <= <warn_level>,
+        CRITICAL if we are able to connect to the php-fpm server's status page and #available workers <= <crit_level>,
+        CRITICAL if we aren't able to connect to the php-fpm server's status page
+
