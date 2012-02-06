@@ -47,6 +47,7 @@ my $o_warn_thresold=undef;  # warning thresolds entry
 my $o_crit_thresold=undef;  # critical thresolds entry
 my $o_debug=        undef;  # debug mode
 my $o_servername=   undef;  # ServerName (host heaéder in http request)
+my $o_https=        undef;  # SSL (HTTPS) mode
 
 my $TempPath = '/tmp/';     # temp path
 my $MaxUptimeDif = 60*30;   # Maximum uptime difference (seconds), default 30 minutes
@@ -100,6 +101,8 @@ sub help {
    Specific URL to use, instead of the default "http://<hostname or IP>/fpm-status"
 -s, --servername=SERVERNAME
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
+-S, --ssl
+   Wether we should use HTTPS instead of HTTP
 -U, --user=user
    Username for basic auth
 -P, --pass=PASS
@@ -156,6 +159,7 @@ sub check_options {
       'd'     => \$o_debug,        'debug'         => \$o_debug,
       'H:s'   => \$o_host,         'hostname:s'    => \$o_host,
       's:s'   => \$o_servername,   'servername:s'  => \$o_servername,
+      'S:s'   => \$o_https,        'ssl:s'         => \$o_https,
       'u:s'   => \$o_url,          'url:s'         => \$o_url,
       'U:s'   => \$o_user,         'user:s'        => \$o_user,
       'P:s'   => \$o_pass,         'pass:s'        => \$o_pass,
@@ -230,18 +234,26 @@ if (!defined($o_url)) {
     # ensure we have a '/' as first char
     $o_url = '/'.$o_url unless $o_url =~ m(^/)
 }
-
+my $proto='http://';
+if(defined($o_https)) {
+    $proto='https://';
+    if (defined($o_port) && $o_port!=443) {
+        if (defined ($o_debug)) {
+            print "\nDEBUG: Notice: port is defined at $o_port and not 443, check you really want that in SSL mode! \n";
+        }
+    }
+}
 if (defined($o_servername)) {
     if (!defined($o_port)) {
-        $url = 'http://' . $o_servername . $o_url;
+        $url = $proto . $o_servername . $o_url;
     } else {
-        $url = 'http://' . $o_servername . ':' . $o_url;
+        $url = $proto . $o_servername . ':' . $o_url;
     }
 } else {
     if (!defined($o_port)) {
-        $url = 'http://' . $o_host . $o_url;
+        $url = $proto . $o_host . $o_url;
     } else {
-        $url = 'http://' . $o_host . ':' . $o_port . $o_url;
+        $url = $proto . $o_host . ':' . $o_port . $o_url;
     }
 }
 if (defined ($o_debug)) {
