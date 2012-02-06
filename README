@@ -30,15 +30,13 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
    Realm for basic auth
 -d, --debug
    Debug mode (show http request response)
--m, --maxreach=MAX
-   Number of max processes reached (since last check) that should trigger an alert
 -t, --timeout=INTEGER
    timeout in seconds (Default: 15)
 -w, --warn=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
-   number of available workers that will cause a warning
+   number of available workers, or max states reached that will cause a warning
    -1 for no warning
 -c, --critical=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
-   number of available workers that will cause an error
+   number of available workers, or max states reached that will cause an error
    -1 for no CRITICAL
 -V, --version
    prints version number

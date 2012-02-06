@@ -46,7 +46,7 @@ my $o_timeout=      15;     # Default 15s Timeout
 my $o_warn_thresold=undef;  # warning thresolds entry
 my $o_crit_thresold=undef;  # critical thresolds entry
 my $o_debug=        undef;  # debug mode
-my $o_servername=   undef;  # ServerName (host heaéder in http request)
+my $o_servername=   undef;  # ServerName (host header in http request)
 my $o_https=        undef;  # SSL (HTTPS) mode
 
 my $TempPath = '/tmp/';     # temp path
@@ -111,15 +111,13 @@ sub help {
    Realm for basic auth
 -d, --debug
    Debug mode (show http request response)
--m, --maxreach=MAX
-   Number of max processes reached (since last check) that should trigger an alert
 -t, --timeout=INTEGER
    timeout in seconds (Default: $o_timeout)
--w, --warn=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
-   number of available workers that will cause a warning
+-w, --warn=REQPERSEC,PROC_MAX_REACHED,QUEUE_MAX_REACHED
+   number of available workers, or max states reached that will cause a warning
    -1 for no warning
 -c, --critical=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
-   number of available workers that will cause an error
+   number of available workers, or max states reached that will cause an error
    -1 for no CRITICAL
 -V, --version
    prints version number
