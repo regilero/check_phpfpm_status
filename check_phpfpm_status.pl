@@ -83,7 +83,7 @@ sub nagios_exit {
 
 # Get the alarm signal
 $SIG{'ALRM'} = sub {
-  nagios_exit("PHP-FPM","CRITICAL","ERROR: Alarm signal (Nagios timeout)");
+  nagios_exit($phpfpm,"CRITICAL","ERROR: Alarm signal (Nagios timeout)");
 };
 
 sub help {
@@ -173,11 +173,11 @@ sub check_options {
 
     if (defined ($o_help)) { 
         help();
-        nagios_exit("PHP-FPM","UNKNOWN","leaving","",1);
+        nagios_exit($phpfpm,"UNKNOWN","leaving","",1);
     }
     if (defined($o_version)) { 
         show_versioninfo();
-        nagios_exit("PHP-FPM","UNKNOWN","leaving","",1);
+        nagios_exit($phpfpm,"UNKNOWN","leaving","",1);
     };
     
     if (defined($o_warn_thresold)) {
@@ -192,20 +192,20 @@ sub check_options {
     }
     if ((defined($o_warn_p_level) && defined($o_crit_p_level)) &&
          (($o_warn_p_level != -1) && ($o_crit_p_level != -1) && ($o_warn_p_level <= $o_crit_p_level)) ) { 
-        nagios_exit("PHP-FPM","UNKNOWN","Check warning and critical values for IdleProcesses (1st part of thresold), warning level must be > crit level!");
+        nagios_exit($phpfpm,"UNKNOWN","Check warning and critical values for IdleProcesses (1st part of thresold), warning level must be > crit level!");
     }
     if ((defined($o_warn_m_level) && defined($o_crit_m_level)) &&
          (($o_warn_m_level != -1) && ($o_crit_m_level != -1) && ($o_warn_m_level >= $o_crit_m_level)) ) { 
-        nagios_exit("PHP-FPM","UNKNOWN","Check warning and critical values for MaxProcesses (2nd part of thresold), warning level must be < crit level!");
+        nagios_exit($phpfpm,"UNKNOWN","Check warning and critical values for MaxProcesses (2nd part of thresold), warning level must be < crit level!");
     }
     if ((defined($o_warn_q_level) && defined($o_crit_q_level)) &&
          (($o_warn_q_level != -1) && ($o_crit_q_level != -1) && ($o_warn_q_level >= $o_crit_q_level)) ) { 
-        nagios_exit("PHP-FPM","UNKNOWN","Check warning and critical values for MaxQueue (3rd part of thresold), warning level must be < crit level!");
+        nagios_exit($phpfpm,"UNKNOWN","Check warning and critical values for MaxQueue (3rd part of thresold), warning level must be < crit level!");
     }
     # Check compulsory attributes
     if (!defined($o_host)) { 
         print_usage();
-        nagios_exit("PHP-FPM","UNKNOWN","-H host argument required");
+        nagios_exit($phpfpm,"UNKNOWN","-H host argument required");
     }
 }
 
