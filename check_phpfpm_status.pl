@@ -297,7 +297,7 @@ if ($response->is_success) {
     if($webcontent =~ m/pool: (.*?)\n/) {
         $Pool = $1;
         $Pool =~ s/^\s+|\s+$//g;
-        $phpfpm .= "-".$Pool;
+        #$phpfpm .= "-".$Pool;
     }
     
     my $Uptime = 0;
@@ -410,10 +410,10 @@ if ($response->is_success) {
         $MaxListenQueueNew = ($MaxListenQueue-$LastMaxListenQueue);
     }
 
-    $InfoData = sprintf (", %.3f sec. response time, Busy/Idle %d/%d,"
+    $InfoData = sprintf ("%s, %.3f sec. response time, Busy/Idle %d/%d,"
                  ." (max: %d, reached: %d), ReqPerSec %.1f, "
                  ."Queue %d (len: %d, reached: %d)"
-                 ,$timeelapsed, $ActiveProcesses, $IdleProcesses
+                 ,$Pool,$timeelapsed, $ActiveProcesses, $IdleProcesses
                  ,$MaxActiveProcesses,$MaxChildrenReachedNew
                  ,$ReqPerSec,$ListenQueue,$ListenQueueLen,$MaxListenQueueNew);
 
