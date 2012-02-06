@@ -443,17 +443,17 @@ if ($response->is_success) {
     if (defined($o_crit_m_level) && (-1!=$o_crit_m_level) && ($MaxChildrenReachedNew >= $o_crit_m_level)) {
         nagios_exit($phpfpm,"CRITICAL", "Max processes reached is critically high " . $InfoData,$PerfData);
     }
-    if (defined($o_crit_p_level) && (-1!=$o_crit_p_level) && ($o_crit_p_level != -1) && ($IdleProcesses <= $o_crit_p_level)) {
+    if (defined($o_crit_p_level) && (-1!=$o_crit_p_level) && ($IdleProcesses <= $o_crit_p_level)) {
         nagios_exit($phpfpm,"CRITICAL", "Idle workers are critically low " . $InfoData,$PerfData);
     }
     # Then WARNING exits by priority
     if (defined($o_warn_q_level) && (-1!=$o_warn_q_level) && ($MaxListenQueueNew >= $o_warn_q_level)) {
-        nagios_exit($phpfpm,"CRITICAL", "Max queue reached is high " . $InfoData,$PerfData);
+        nagios_exit($phpfpm,"WARNING", "Max queue reached is high " . $InfoData,$PerfData);
     }
     if (defined($o_warn_m_level) && (-1!=$o_warn_m_level) && ($MaxChildrenReachedNew >= $o_warn_m_level)) {
-        nagios_exit($phpfpm,"CRITICAL", "Max processes reached is high " . $InfoData,$PerfData);
+        nagios_exit($phpfpm,"WARNING", "Max processes reached is high " . $InfoData,$PerfData);
     }
-    if (defined($o_warn_p_level) && (-1!=$o_warn_p_level) && ($o_warn_p_level != -1) && ($IdleProcesses <= $o_warn_p_level)) {
+    if (defined($o_warn_p_level) && (-1!=$o_warn_p_level) && ($IdleProcesses <= $o_warn_p_level)) {
         nagios_exit($phpfpm,"WARNING", "Idle workers are low " . $InfoData,$PerfData);
     }
     
