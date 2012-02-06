@@ -20,6 +20,8 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
    Specific URL to use, instead of the default "http://<hostname or IP>/fpm-status"
 -s, --servername=SERVERNAME
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
+-S, --ssl
+   Wether we should use HTTPS instead of HTTP
 -U, --user=user
    Username for basic auth
 -P, --pass=PASS
