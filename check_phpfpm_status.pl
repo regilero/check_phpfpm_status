@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # check_phpfpm_status.pl
-# Version : 0.3
+# Version : 0.9
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by 
@@ -25,7 +25,7 @@ use lib "/usr/local/nagios/libexec";
 use utils qw($TIMEOUT);
 
 # Globals
-my $Version='0.3';
+my $Version='0.9';
 my $Name=$0;
 
 my $o_host =        undef;  # hostname 
@@ -287,8 +287,12 @@ if ($response->is_success) {
     if (defined ($o_debug)) {
         print "\nDEBUG: HTTP response:";
         print $response->status_line;
+        print "\n".$response->header('Content-Type');
         print "\n";
         print $webcontent;
+    }
+    if ($response->header('Content-Type') =~ m/text\/html/) {
+        nagios_exit($phpfpm,"CRITICAL", "We have a response page for our request, but it's an HTML page, quite certainly not the status report of php-fpm");
     }
     # example of response content expected:
     #pool:                 foobar

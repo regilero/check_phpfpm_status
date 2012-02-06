@@ -1,3 +1,7 @@
+version 0.9 Beta
+* Added -S/--ssl option
+* Detect text/html response and exit on CRITICAL (not the good response)
+
 Version 0.3
 * warn and critical thresolds now contains 3 values (minimum idle process, max processes reached, max queue reached)
 * fixed max queue reached
