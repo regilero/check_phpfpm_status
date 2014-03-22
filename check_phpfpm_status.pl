@@ -98,7 +98,7 @@ sub help {
 -p, --port=PORT
    Http port
 -u, --url=URL
-   Specific URL to use, instead of the default "http://<hostname or IP>/fpm-status"
+   Specific URL (only the path part of it in fact) to use, instead of the default "/fpm-status"
 -s, --servername=SERVERNAME
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
 -S, --ssl
