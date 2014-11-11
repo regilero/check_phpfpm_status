@@ -6,6 +6,12 @@ You can use this script to draw some graphics. Details for centreon graphics are
 PHP-FPM Monitor for Nagios version 0.1
 GPL licence, (c)2012 Leroy Regis
 
+Installation:
+=============
+
+1.  Copy check_phpfpm_status.pl to the server's nagios plugins directory.
+2.  Edit check_phpfpm_status.pl (line #25) and verify the lib path specified is correct for your platform
+
 Script Documentation:
 =====================
 
