@@ -1,3 +1,10 @@
+version 0.10 Beta
+* fix critical and warning options arguments when first value is a dash
+* more documentation about IP; hostname and URI
+* document library path dependency (@salderma)
+* port variable fix (@slawekp)
+* some WARNINGs were sent as CRITICALs (max queue, max processes)
+
 version 0.9 Beta
 * Added -S/--ssl option
 * Detect text/html response and exit on CRITICAL (not the good response)
