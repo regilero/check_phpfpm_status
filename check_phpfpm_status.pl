@@ -114,7 +114,7 @@ sub help {
    Debug mode (show http request response)
 -t, --timeout=INTEGER
    timeout in seconds (Default: $o_timeout)
--w, --warn=REQPERSEC,PROC_MAX_REACHED,QUEUE_MAX_REACHED
+-w, --warn=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
    number of available workers, or max states reached that will cause a warning
    -1 for no warning
 -c, --critical=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
