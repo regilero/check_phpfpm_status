@@ -38,7 +38,7 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
    Debug mode (show http request response)
 -t, --timeout=INTEGER
    timeout in seconds (Default: 15)
--w, --warn=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
+-w, --warn=REQPERSEC,PROC_MAX_REACHED,QUEUE_MAX_REACHED
    number of available workers, or max states reached that will cause a warning
    -1 for no warning
 -c, --critical=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
@@ -48,7 +48,6 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
    prints version number
 
 Note :
-------
   3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
   - MIN_AVAILABLE_PROCESSES: Working with the number of available (Idle) and working process (Busy). 
     Generating WARNING and CRITICAL if you do not have enough Idle processes.
@@ -57,22 +56,7 @@ Note :
   - QUEUE_MAX_REACHED: the php-fpm report will show us how many times the max queue was reached since start,
     this script will record how many time this happended since last check, letting you fix thresolds for alerts
 
-IP and Hostname:
-----------------
-
-  A webserver is available on a given IP, which is maybe not the one you would get by doing a DNS query on the
-  website domain name. So always use an IP for the -H option.
-  Then on this unique webserver you could have several Virtualhosts, checking the **Hostname** header of the HTTP
-  query to decide which Virtualhost you really want to see. And theses virtualhosts could lead to different
-  php-fpm pools. So you should really use the **-s** option and set your domain name.
-  
-  That mean that instead of a check which would work with:
-    - H www.example.com -u /fpm-status
-  You should really use something like :
-    - H 1.2.3.4 -s www.example.com -u /fpm-status
-
 Examples: 
-----------
 
   This will lead to CRITICAL if you have 0 Idle process, or you have reached the max processes 2 times between last check,
   or you have reached the max queue len 5 times. A Warning will be reached for 1 Idle process only.
