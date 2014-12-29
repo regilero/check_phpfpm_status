@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # check_phpfpm_status.pl
-# Version : 0.9
+# Version : 0.10
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by 
@@ -26,7 +26,7 @@ use lib "/usr/local/nagios/libexec";
 use utils qw($TIMEOUT);
 
 # Globals
-my $Version='0.9';
+my $Version='0.10';
 my $Name=$0;
 
 my $o_host =        undef;  # hostname 
@@ -165,8 +165,8 @@ sub check_options {
       'r:s'   => \$o_realm,        'realm:s'       => \$o_realm,
       'p:i'   => \$o_port,         'port:i'        => \$o_port,
       'V'     => \$o_version,      'version'       => \$o_version,
-      'w:s'   => \$o_warn_thresold,'warn:s'        => \$o_warn_thresold,
-      'c:s'   => \$o_crit_thresold,'critical:s'    => \$o_crit_thresold,
+      'w=s'   => \$o_warn_thresold,'warn=s'        => \$o_warn_thresold,
+      'c=s'   => \$o_crit_thresold,'critical=s'    => \$o_crit_thresold,
       't:i'   => \$o_timeout,      'timeout:i'     => \$o_timeout,
     );
 
