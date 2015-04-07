@@ -5,6 +5,7 @@ version 0.10 Beta
 * port variable fix (@slawekp)
 * some WARNINGs were sent as CRITICALs (max queue, max processes)
 * added default ubuntu paths for nagios lib (@ranzhe)
+* space separated perf data output, for better compatibility (@gummiboll)
 
 version 0.9 Beta
 * Added -S/--ssl option
