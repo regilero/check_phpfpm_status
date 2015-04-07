@@ -4,6 +4,7 @@ version 0.10 Beta
 * document library path dependency (@salderma)
 * port variable fix (@slawekp)
 * some WARNINGs were sent as CRITICALs (max queue, max processes)
+* added default ubuntu paths for nagios lib (@ranzhe)
 
 version 0.9 Beta
 * Added -S/--ssl option
