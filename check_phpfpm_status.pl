@@ -433,8 +433,8 @@ if ($response->is_success) {
                  ,$MaxActiveProcesses,$MaxChildrenReachedNew
                  ,$ReqPerSec,$ListenQueue,$ListenQueueLen,$MaxListenQueueNew);
 
-    $PerfData = sprintf ("Idle=%d;Busy=%d;MaxProcesses=%d;MaxProcessesReach=%d;"
-                 ."Queue=%d;MaxQueueReach=%d;QueueLen=%d;ReqPerSec=%f"
+    $PerfData = sprintf ("Idle=%d Busy=%d MaxProcesses=%d MaxProcessesReach=%d "
+                 ."Queue=%d MaxQueueReach=%d QueueLen=%d ReqPerSec=%f"
                  ,($IdleProcesses),($ActiveProcesses),($MaxActiveProcesses)
                  ,($MaxChildrenReachedNew),($ListenQueue),($MaxListenQueueNew)
                  ,($ListenQueueLen),$ReqPerSec);
