@@ -283,7 +283,7 @@ my $PerfData = '';
 
 my $webcontent = undef;
 if ($response->is_success) {
-    $webcontent=$response->decoded_content;
+    $webcontent=$response->decoded_content( charset_strict=>1, raise_error => 1, alt_charset => 'none' );
     if (defined ($o_debug)) {
         print "\nDEBUG: HTTP response:";
         print $response->status_line;
