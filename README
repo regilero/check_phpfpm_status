@@ -46,7 +46,9 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
    -1 for no CRITICAL
 -V, --version
    prints version number
-
+-x, --verifyhostname
+   verify hostname from ssl cert, set it to 0 to ignore bad hostname from cert
+   
 Note :
   3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
   - MIN_AVAILABLE_PROCESSES: Working with the number of available (Idle) and working process (Busy). 
