@@ -50,7 +50,7 @@ my $o_crit_thresold=undef;  # critical thresolds entry
 my $o_debug=        undef;  # debug mode
 my $o_servername=   undef;  # ServerName (host header in http request)
 my $o_https=        undef;  # SSL (HTTPS) mode
-my $o_verify_hostname=  1;	#
+my $o_verify_hostname=  0;	# SSL Hostname verification, False by default
 
 my $TempPath = '/tmp/';     # temp path
 my $MaxUptimeDif = 60*30;   # Maximum uptime difference (seconds), default 30 minutes
