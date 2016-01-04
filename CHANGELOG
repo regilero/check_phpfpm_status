@@ -1,3 +1,7 @@
+version 0.11 Beta (01-2016) - current moving version
+* add -x/ --verifyhostname SSL Hostname verification Option (@Vebryn)
+* add default path for icinga in lib
+
 version 0.10 Beta
 * fix critical and warning options arguments when first value is a dash
 * more documentation about IP; hostname and URI
