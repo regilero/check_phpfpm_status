@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # check_phpfpm_status.pl
-# Version : 0.10
+# Version : 0.11
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by 
@@ -50,6 +50,7 @@ my $o_crit_thresold=undef;  # critical thresolds entry
 my $o_debug=        undef;  # debug mode
 my $o_servername=   undef;  # ServerName (host header in http request)
 my $o_https=        undef;  # SSL (HTTPS) mode
+my $o_verify_hostname=  1;	#
 
 my $TempPath = '/tmp/';     # temp path
 my $MaxUptimeDif = 60*30;   # Maximum uptime difference (seconds), default 30 minutes
@@ -123,6 +124,8 @@ sub help {
    -1 for no CRITICAL
 -V, --version
    prints version number
+-x, --verify_hostname
+   verify hostname from ssl cert, set it to 0 to ignore bad hostname from cert
 
 Note :
   3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
@@ -164,11 +167,12 @@ sub check_options {
       'U:s'   => \$o_user,         'user:s'        => \$o_user,
       'P:s'   => \$o_pass,         'pass:s'        => \$o_pass,
       'r:s'   => \$o_realm,        'realm:s'       => \$o_realm,
-      'p:i'   => \$o_port,         'port:i'        => \$o_port,
-      'V'     => \$o_version,      'version'       => \$o_version,
-      'w=s'   => \$o_warn_thresold,'warn=s'        => \$o_warn_thresold,
-      'c=s'   => \$o_crit_thresold,'critical=s'    => \$o_crit_thresold,
-      't:i'   => \$o_timeout,      'timeout:i'     => \$o_timeout,
+      'p:i'   => \$o_port,         		'port:i'        => \$o_port,
+      'V'     => \$o_version,      		'version'       => \$o_version,
+      'w=s'   => \$o_warn_thresold,		'warn=s'        => \$o_warn_thresold,
+      'c=s'   => \$o_crit_thresold,		'critical=s'    => \$o_crit_thresold,
+      't:i'   => \$o_timeout,      		'timeout:i'     		=> \$o_timeout,
+      'x:i'   => \$o_verify_hostname,	'verify_hostname:i'		=> \$o_verify_hostname,
     );
 
     if (defined ($o_help)) { 
@@ -216,7 +220,8 @@ check_options();
 my $override_ip = $o_host;
 my $ua = LWP::UserAgent->new( 
   protocols_allowed => ['http', 'https'], 
-  timeout => $o_timeout
+  timeout => $o_timeout,
+  ssl_opts => { verify_hostname => $o_verify_hostname }
 );
 # we need to enforce the HTTP request is made on the Nagios Host IP and
 # not on the DNS related IP for that domain
