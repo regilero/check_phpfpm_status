@@ -125,7 +125,7 @@ sub help {
    -1 for no CRITICAL
 -V, --version
    prints version number
--x, --verify_hostname
+-x, --verifyhostname
    verify hostname from ssl cert, set it to 0 to ignore bad hostname from cert
 
 Note :
@@ -173,7 +173,7 @@ sub check_options {
       'w=s'   => \$o_warn_thresold,		'warn=s'        => \$o_warn_thresold,
       'c=s'   => \$o_crit_thresold,		'critical=s'    => \$o_crit_thresold,
       't:i'   => \$o_timeout,      		'timeout:i'     		=> \$o_timeout,
-      'x:i'   => \$o_verify_hostname,	'verify_hostname:i'		=> \$o_verify_hostname,
+      'x:i'   => \$o_verify_hostname,	'verifyhostname:i'		=> \$o_verify_hostname,
     );
 
     if (defined ($o_help)) { 
