@@ -19,6 +19,8 @@ use LWP::UserAgent;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Digest::MD5 qw(md5 md5_hex);
 
+# ensure all outputs are in UTF-8
+binmode(STDOUT, ":utf8");
 
 # Nagios specific
 # Update Nagios Plugin path according to your platform/installation
