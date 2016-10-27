@@ -221,11 +221,17 @@ sub check_options {
 check_options();
 
 my $override_ip = $o_host;
-my $ua = LWP::UserAgent->new( 
+
+@lwp_opts = (
   protocols_allowed => ['http', 'https'], 
-  timeout => $o_timeout,
-  ssl_opts => { verify_hostname => $o_verify_hostname }
+  timeout => $o_timeout
 );
+if (LWP::UserAgent->VERSION >= 6.10) {
+  push @lwp_opts,(ssl_opts => { verify_hostname => $o_verify_hostname });
+  # unsupported options on old version, cannot do anything
+}
+my $ua = LWP::UserAgent->new(@lwp_opts)
+
 # we need to enforce the HTTP request is made on the Nagios Host IP and
 # not on the DNS related IP for that domain
 @LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
