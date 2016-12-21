@@ -8,7 +8,7 @@
 #						    Karsten Behrens (karsten at behrens dot in)
 #		    				Geoff McQueen (geoff.mcqueen at hiivesystems dot com )
 #				    		Dave Steinberg (dave at redterror dot net)
-# Licence : GPL - http://www.fsf.org/licenses/gpl.txt
+# Licence : GNU GPL v3 - http://www.fsf.org/licenses/gpl.txt
 #
 # help : ./check_phpfpm_status.pl -h
 #
