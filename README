@@ -9,25 +9,49 @@ GPL licence, (c)2012 Leroy Regis
 Installation:
 =============
 
-1.  Copy check_phpfpm_status.pl to the server's nagios plugins directory.
+dependencies
+-------------
+You need perl.
+
+You also need utils.pm (perl library provided by Nagios).
+
+If you use the script to request the php status page from a web service (usual
+case) you'll need the perl library, LWP::UserAgent (`apt-get install liblwp-protocol-https-perl` on Debian)
+
+If you request the php status page without http support, directly in fastcgi you
+will need the FCGI library. On debian:
+
+    sudo perl -MCPAN -e shell
+    install Bundle::CPAN
+    reload cpan
+    install FCGI::Client
+
+apt-get install libfcgi-perl` on Debian)
+
+Install of this script
+-----------------------
+
+1.  Copy check_phpfpm_status.pl to the server's nagios plugins directory (to find utils.pm).
 2.  Edit check_phpfpm_status.pl (line #25) and verify the lib path specified is correct for your platform
 
 Script Documentation:
 =====================
 
-Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-w <WARN_THRESOLD> -c <CRIT_THRESOLD>] [-V] [-d] [-u <url>] [-U user -P pass -r realm]
+Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-w <WARN_THRESOLD> -c <CRIT_THRESOLD>] [-V] [-d] [-f] [-u <url>] [-U user -P pass -r realm]
 -h, --help
    print this help message
 -H, --hostname=HOST
    name or IP address of host to check
 -p, --port=PORT
-   Http port
+   Http port, or Fastcgi port when using --fastcgi
 -u, --url=URL
    Specific URL (only the path part of it in fact) to use, instead of the default "/fpm-status"
 -s, --servername=SERVERNAME
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
 -S, --ssl
    Wether we should use HTTPS instead of HTTP
+-f, --fastcgi
+   Connect directly to php-fpm via network or local socket, using fastcgi protocol instead of HTTP.
 -U, --user=user
    Username for basic auth
 -P, --pass=PASS
@@ -48,30 +72,42 @@ Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <ti
    prints version number
 -x, --verifyhostname
    verify hostname from ssl cert, set it to 0 to ignore bad hostname from cert
-   
+
 Note :
   3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
-  - MIN_AVAILABLE_PROCESSES: Working with the number of available (Idle) and working process (Busy). 
+  - MIN_AVAILABLE_PROCESSES: Working with the number of available (Idle) and working process (Busy).
     Generating WARNING and CRITICAL if you do not have enough Idle processes.
-  - PROC_MAX_REACHED: the fpm-status report will show us how many times the max processes were reached sinc start, 
+  - PROC_MAX_REACHED: the fpm-status report will show us how many times the max processes were reached sinc start,
     this script will record how many time this happended since last check, letting you fix thresolds for alerts
   - QUEUE_MAX_REACHED: the php-fpm report will show us how many times the max queue was reached since start,
     this script will record how many time this happended since last check, letting you fix thresolds for alerts
 
-Examples: 
+Examples:
 
   This will lead to CRITICAL if you have 0 Idle process, or you have reached the max processes 2 times between last check,
-  or you have reached the max queue len 5 times. A Warning will be reached for 1 Idle process only.
+  or you have reached the max queue len 5 times. A Warning will be reached for 1 Idle process only:
+
 check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -t 8 -w 1,-1,-1 -c 0,2,5
 
-  this will generate WARNING and CRITICAL alerts only on the number of times you have reached the max process
+  this will generate WARNING and CRITICAL alerts only on the number of times you have reached the max process:
+
 check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -t 8 -w -1,10,-1 -c -1,20,-1
 
-  theses two equivalents will not generate any alert (if the php-fpm page is reachable) but could be used for graphics
+  theses two equivalents will not generate any alert (if the php-fpm page is reachable) but could be used for graphics:
+
 check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com -w -1,-1,-1 -c -1,-1,-1
 check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com
- 
-  And this one is a basic starting example
+
+  And this one is a basic starting example :
+
 check_phpfpm_status.pl -H 127.0.0.1 -s nagios.example.com -w 1,1,1 -c 0,2,2
+
+  All these examples used an HTTP proxy (like Nginx or Apache) in front of php-fpm. If php-fpm is listening on a tcp/ip socket
+  you can also make a direct request on this port (9000 by default) using the fastcgi protocol. You'll need the FastCGI client
+  tools enabled in Perl (check the README) and the command would use the -f or --fastcgi option (note that SSL or servername
+  options are useless in this mode).
+  This can be especially usefull if you use php-fpm in an isolated env, without the HTTP proxy support (like in a docker container):
+
+check_phpfpm_status.pl -H 127.0.0.1 --fastcgi -p 9002 -w 1,1,1 -c 0,2,2
 
 Licence: GNU GPL v3

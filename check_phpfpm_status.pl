@@ -3,21 +3,24 @@
 # Version : 0.11
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
-#						Based on check_apachestatus.pl v1.4 by 
+#						Based on check_apachestatus.pl v1.4 by
 #						    De Bodt Lieven (Lieven.DeBodt at gmail.com)
 #						    Karsten Behrens (karsten at behrens dot in)
 #		    				Geoff McQueen (geoff.mcqueen at hiivesystems dot com )
 #				    		Dave Steinberg (dave at redterror dot net)
-# Licence : GPL - http://www.fsf.org/licenses/gpl.txt
+# Licence : GNU GPL v3 - http://www.fsf.org/licenses/gpl.txt
 #
 # help : ./check_phpfpm_status.pl -h
 #
 # issues & updates: http://github.com/regilero/check_phpfpm_status
 use strict;
+use warnings;
 use Getopt::Long;
-use LWP::UserAgent;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Digest::MD5 qw(md5 md5_hex);
+
+# ---------------------------------------------------------------------------
+package main;
 
 # ensure all outputs are in UTF-8
 binmode(STDOUT, ":utf8");
@@ -33,7 +36,7 @@ use utils qw($TIMEOUT);
 my $Version='0.12';
 my $Name=$0;
 
-my $o_host =        undef;  # hostname 
+my $o_host =        undef;  # hostname
 my $o_help=         undef;  # want some help ?
 my $o_port=         undef;  # port
 my $o_url =         undef;  # url to use, if not the default
@@ -51,6 +54,7 @@ my $o_timeout=      15;     # Default 15s Timeout
 my $o_warn_thresold=undef;  # warning thresolds entry
 my $o_crit_thresold=undef;  # critical thresolds entry
 my $o_debug=        undef;  # debug mode
+my $o_fastcgi=      undef;  # direct fastcgi mode (without an http->fastcgi proxy)
 my $o_servername=   undef;  # ServerName (host header in http request)
 my $o_https=        undef;  # SSL (HTTPS) mode
 my $o_verify_hostname=  0;	# SSL Hostname verification, False by default
@@ -64,7 +68,7 @@ my $phpfpm = 'PHP-FPM'; # Could be used to store version also
 sub show_versioninfo { print "$Name version : $Version\n"; }
 
 sub print_usage {
-  print "Usage: $Name -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-w <WARN_THRESOLD> -c <CRIT_THRESOLD>] [-V] [-d] [-u <url>] [-U user -P pass -r realm]\n";
+  print "Usage: $Name -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-w <WARN_THRESOLD> -c <CRIT_THRESOLD>] [-V] [-d] [-f] [-u <url>] [-U user -P pass -r realm]\n";
 }
 sub nagios_exit {
     my ( $nickname, $status, $message, $perfdata , $silent) = @_;
@@ -102,13 +106,15 @@ sub help {
 -H, --hostname=HOST
    name or IP address of host to check
 -p, --port=PORT
-   Http port
+   Http port, or Fastcgi port when using --fastcgi
 -u, --url=URL
    Specific URL (only the path part of it in fact) to use, instead of the default "/fpm-status"
 -s, --servername=SERVERNAME
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
 -S, --ssl
    Wether we should use HTTPS instead of HTTP
+-f, --fastcgi
+   Connect directly to php-fpm via network or local socket, using fastcgi protocol instead of HTTP.
 -U, --user=user
    Username for basic auth
 -P, --pass=PASS
@@ -132,28 +138,41 @@ sub help {
 
 Note :
   3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
-  - MIN_AVAILABLE_PROCESSES: Working with the number of available (Idle) and working process (Busy). 
+  - MIN_AVAILABLE_PROCESSES: Working with the number of available (Idle) and working process (Busy).
     Generating WARNING and CRITICAL if you do not have enough Idle processes.
-  - PROC_MAX_REACHED: the fpm-status report will show us how many times the max processes were reached sinc start, 
+  - PROC_MAX_REACHED: the fpm-status report will show us how many times the max processes were reached sinc start,
     this script will record how many time this happended since last check, letting you fix thresolds for alerts
   - QUEUE_MAX_REACHED: the php-fpm report will show us how many times the max queue was reached since start,
     this script will record how many time this happended since last check, letting you fix thresolds for alerts
 
-Examples: 
+Examples:
 
   This will lead to CRITICAL if you have 0 Idle process, or you have reached the max processes 2 times between last check,
-  or you have reached the max queue len 5 times. A Warning will be reached for 1 Idle process only.
+  or you have reached the max queue len 5 times. A Warning will be reached for 1 Idle process only:
+
 check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -t 8 -w 1,-1,-1 -c 0,2,5
 
-  this will generate WARNING and CRITICAL alerts only on the number of times you have reached the max process
+  this will generate WARNING and CRITICAL alerts only on the number of times you have reached the max process:
+
 check_phpfpm_status.pl -H 10.0.0.10 -u /foo/my-fpm-status -s mydomain.example.com -t 8 -w -1,10,-1 -c -1,20,-1
 
-  theses two equivalents will not generate any alert (if the php-fpm page is reachable) but could be used for graphics
+  theses two equivalents will not generate any alert (if the php-fpm page is reachable) but could be used for graphics:
+
 check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com -w -1,-1,-1 -c -1,-1,-1
 check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com
- 
-  And this one is a basic starting example
+
+  And this one is a basic starting example :
+
 check_phpfpm_status.pl -H 127.0.0.1 -s nagios.example.com -w 1,1,1 -c 0,2,2
+
+  All these examples used an HTTP proxy (like Nginx or Apache) in front of php-fpm. If php-fpm is listening on a tcp/ip socket
+  you can also make a direct request on this port (9000 by default) using the fastcgi protocol. You'll need the FastCGI client
+  tools enabled in Perl (check the README) and the command would use the -f or --fastcgi option (note that SSL or servername
+  options are useless in this mode).
+  This can be especially usefull if you use php-fpm in an isolated env, without the HTTP proxy support (like in a docker container):
+
+check_phpfpm_status.pl -H 127.0.0.1 --fastcgi -p 9002 -w 1,1,1 -c 0,2,2
+
 
 EOT
 }
@@ -163,6 +182,7 @@ sub check_options {
     GetOptions(
       'h'     => \$o_help,         'help'          => \$o_help,
       'd'     => \$o_debug,        'debug'         => \$o_debug,
+      'f'     => \$o_fastcgi,      'fastcgi'       => \$o_fastcgi,
       'H:s'   => \$o_host,         'hostname:s'    => \$o_host,
       's:s'   => \$o_servername,   'servername:s'  => \$o_servername,
       'S:s'   => \$o_https,        'ssl:s'         => \$o_https,
@@ -178,39 +198,46 @@ sub check_options {
       'x:i'   => \$o_verify_hostname,	'verifyhostname:i'		=> \$o_verify_hostname,
     );
 
-    if (defined ($o_help)) { 
+    if (defined ($o_help)) {
         help();
         nagios_exit($phpfpm,"UNKNOWN","leaving","",1);
     }
-    if (defined($o_version)) { 
+    if (defined($o_version)) {
         show_versioninfo();
         nagios_exit($phpfpm,"UNKNOWN","leaving","",1);
     };
-    
+
     if (defined($o_warn_thresold)) {
         ($o_warn_p_level,$o_warn_m_level,$o_warn_q_level) = split(',', $o_warn_thresold);
+    } else {
+        $o_warn_thresold = 'undefined'
     }
     if (defined($o_crit_thresold)) {
         ($o_crit_p_level,$o_crit_m_level,$o_crit_q_level) = split(',', $o_crit_thresold);
+    } else {
+        $o_crit_thresold = 'undefined'
+    }
+    if (defined($o_fastcgi) && defined($o_https)) {
+        nagios_exit($phpfpm,"UNKNOWN","You cannot use both --fastcgi and --ssl options, we do not use http (nor https) when we use direct fastcgi access!");
     }
     if (defined($o_debug)) {
         print("\nDebug thresolds: \nWarning: ($o_warn_thresold) => Min Idle: $o_warn_p_level Max Reached :$o_warn_m_level MaxQueue: $o_warn_q_level");
         print("\nCritical ($o_crit_thresold) => : Min Idle: $o_crit_p_level Max Reached: $o_crit_m_level MaxQueue : $o_crit_q_level\n");
     }
     if ((defined($o_warn_p_level) && defined($o_crit_p_level)) &&
-         (($o_warn_p_level != -1) && ($o_crit_p_level != -1) && ($o_warn_p_level <= $o_crit_p_level)) ) { 
+         (($o_warn_p_level != -1) && ($o_crit_p_level != -1) && ($o_warn_p_level <= $o_crit_p_level)) ) {
         nagios_exit($phpfpm,"UNKNOWN","Check warning and critical values for IdleProcesses (1st part of thresold), warning level must be > crit level!");
     }
     if ((defined($o_warn_m_level) && defined($o_crit_m_level)) &&
-         (($o_warn_m_level != -1) && ($o_crit_m_level != -1) && ($o_warn_m_level >= $o_crit_m_level)) ) { 
+         (($o_warn_m_level != -1) && ($o_crit_m_level != -1) && ($o_warn_m_level >= $o_crit_m_level)) ) {
         nagios_exit($phpfpm,"UNKNOWN","Check warning and critical values for MaxProcesses (2nd part of thresold), warning level must be < crit level!");
     }
     if ((defined($o_warn_q_level) && defined($o_crit_q_level)) &&
-         (($o_warn_q_level != -1) && ($o_crit_q_level != -1) && ($o_warn_q_level >= $o_crit_q_level)) ) { 
+         (($o_warn_q_level != -1) && ($o_crit_q_level != -1) && ($o_warn_q_level >= $o_crit_q_level)) ) {
         nagios_exit($phpfpm,"UNKNOWN","Check warning and critical values for MaxQueue (3rd part of thresold), warning level must be < crit level!");
     }
     # Check compulsory attributes
-    if (!defined($o_host)) { 
+    if (!defined($o_host)) {
         print_usage();
         nagios_exit($phpfpm,"UNKNOWN","-H host argument required");
     }
@@ -218,30 +245,17 @@ sub check_options {
 
 ########## MAIN ##########
 
+# warning capture: avoid extra line added on output by warnings (like deprecation warning in FastCGI code)
+local $SIG{__WARN__} = sub {
+    if (defined ($o_debug)) {
+        my $warn = shift;
+        print "\nDEBUG: Perl warning message captured: $warn";
+    }
+};
+
 check_options();
 
 my $override_ip = $o_host;
-
-@lwp_opts = (
-  protocols_allowed => ['http', 'https'],
-  timeout => $o_timeout
-);
-if (LWP::UserAgent->VERSION >= 6.10) {
-    push @lwp_opts,(ssl_opts => { verify_hostname => $o_verify_hostname });
-} else {
-    # unsupported options on old version, cannot do anything
-    if (defined ($o_debug)) {
-        print "\nDEBUG: Notice: You are using a version of LWP::UserAgent older than 6.10, we cannot set verify_hostname SSL option on this version (So it will always be checked).\n";
-    }
-}
-my $ua = LWP::UserAgent->new(@lwp_opts)
-
-# we need to enforce the HTTP request is made on the Nagios Host IP and
-# not on the DNS related IP for that domain
-@LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
-# this prevent used only once warning in -w mode
-my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
-
 my $timing0 = [gettimeofday];
 my $response = undef;
 my $url = undef;
@@ -252,55 +266,127 @@ if (!defined($o_url)) {
     # ensure we have a '/' as first char
     $o_url = '/'.$o_url unless $o_url =~ m(^/)
 }
-my $proto='http://';
-if(defined($o_https)) {
-    $proto='https://';
-    if (defined($o_port) && $o_port!=443) {
+
+if (defined($o_fastcgi)) {
+    # -- FASTCGI
+    if (defined ($o_debug)) {
+        print "\nDEBUG: loading Perl fastCgi module 'FCGI::Client::Connection', hope you've installed it...";
+    }
+    eval "use FCGI::Client::Connection;"; die $@ if $@;
+    eval "use IO::Socket::INET"; die $@ if $@;
+
+    if (!defined($o_port)) {
+        $o_port = 9000;
+    }
+    my $sock = IO::Socket::INET->new(
+        PeerAddr => $override_ip,
+        PeerPort => $o_port,
+    );
+    if (!$sock) {
+        nagios_exit($phpfpm,"CRITICAL", "Cannot connect to  $override_ip : $o_port !");
+    }
+    my $fastcgiClient = FCGI::Client::Connection->new(sock => $sock);
+    $url = $o_url;
+    my $sname = undef;
+    if (defined($o_servername)) {
+        $sname= $o_servername;
+    } else {
+        $sname = $o_host;
+    }
+    my ( $stdout, $stderr ) = $fastcgiClient->request(
+        +{
+            GATEWAY_INTERFACE => 'FastCGI/1.0',
+            REQUEST_METHOD => 'GET',
+            QUERY_STRING   => '',
+            SCRIPT_FILENAME => $url,
+            SCRIPT_NAME => $url,
+        },
+        ''
+    );
+    if (defined ($o_debug)) {
+        print "\nDEBUG: FASCGI requested url\n";
+        print $url;
+        print "\nDEBUG: FASCGI response: STDERR\n";
+        print $stderr;
+    }
+    $response = fcgi_response->new($stdout, $o_debug);
+} else {
+    # -- HTTP
+    eval "use LWP::UserAgent;"; die $@ if $@;
+    #use LWP::UserAgent;
+
+    my @lwp_opts = (
+        protocols_allowed => ['http', 'https'],
+        timeout => $o_timeout
+    );
+    if (LWP::UserAgent->VERSION >= 6.10) {
+        push @lwp_opts,(ssl_opts => { verify_hostname => $o_verify_hostname });
+    } else {
+        # unsupported options on old version, cannot do anything
         if (defined ($o_debug)) {
-            print "\nDEBUG: Notice: port is defined at $o_port and not 443, check you really want that in SSL mode! \n";
+            print "\nDEBUG: Notice: You are using a version of LWP::UserAgent older than 6.10, we cannot set verify_hostname SSL option on this version (So it will always be checked).\n";
         }
     }
-}
-if (defined($o_servername)) {
-    if (!defined($o_port)) {
-        $url = $proto . $o_servername . $o_url;
-    } else {
-        $url = $proto . $o_servername . ':' . $o_port . $o_url;
+    my $ua = LWP::UserAgent->new(@lwp_opts);
+
+    # we need to enforce the HTTP request is made to the Nagios Host IP and
+    # not on the DNS related IP for that domain
+    @LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
+    # this prevent 'used only once' warning in -w mode
+    my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
+
+    my $proto='http://';
+    if(defined($o_https)) {
+        $proto='https://';
+        if (defined($o_port) && $o_port!=443) {
+            if (defined ($o_debug)) {
+                print "\nDEBUG: Notice: port is defined at $o_port and not 443, check you really want that in SSL mode! \n";
+            }
+        }
     }
-} else {
-    if (!defined($o_port)) {
-        $url = $proto . $o_host . $o_url;
+    if (defined($o_servername)) {
+        if (!defined($o_port)) {
+            $url = $proto . $o_servername . $o_url;
+        } else {
+            $url = $proto . $o_servername . ':' . $o_port . $o_url;
+        }
     } else {
-        $url = $proto . $o_host . ':' . $o_port . $o_url;
+        if (!defined($o_port)) {
+            $url = $proto . $o_host . $o_url;
+        } else {
+            $url = $proto . $o_host . ':' . $o_port . $o_url;
+        }
     }
-}
-if (defined ($o_debug)) {
-    print "\nDEBUG: HTTP url: \n";
-    print $url;
+    if (defined ($o_debug)) {
+        print "\nDEBUG: HTTP url: \n";
+        print $url;
+    }
+
+    my $req = HTTP::Request->new( GET => $url );
+
+    if (defined($o_servername)) {
+        $req->header('Host' => $o_servername);
+    }
+    if (defined($o_user)) {
+        $req->authorization_basic($o_user, $o_pass);
+    }
+
+    if (defined ($o_debug)) {
+        print "\nDEBUG: HTTP request: \n";
+        print "IP used (better if it's an IP):" . $override_ip . "\n";
+        print $req->as_string;
+    }
+    $response = $ua->request($req);
 }
 
-my $req = HTTP::Request->new( GET => $url );
-
-if (defined($o_servername)) {
-    $req->header('Host' => $o_servername);
-}
-if (defined($o_user)) {
-    $req->authorization_basic($o_user, $o_pass);
-}
-
-if (defined ($o_debug)) {
-    print "\nDEBUG: HTTP request: \n";
-    print "IP used (better if it's an IP):" . $override_ip . "\n";
-    print $req->as_string;
-}
-$response = $ua->request($req);
-my $timeelapsed = tv_interval ($timing0, [gettimeofday]);
+my $timeelapsed = tv_interval($timing0, [gettimeofday]);
 
 my $InfoData = '';
 my $PerfData = '';
 
 my $webcontent = undef;
 if ($response->is_success) {
+
     $webcontent=$response->decoded_content( charset_strict=>1, raise_error => 1, alt_charset => 'none' );
     if (defined ($o_debug)) {
         print "\nDEBUG: HTTP response:";
@@ -333,61 +419,61 @@ if ($response->is_success) {
         $Pool =~ s/^\s+|\s+$//g;
         #$phpfpm .= "-".$Pool;
     }
-    
+
     my $Uptime = 0;
     if($webcontent =~ m/start since: (.*?)\n/) {
         $Uptime = $1;
         $Uptime =~ s/^\s+|\s+$//g;
     }
-    
+
     my $AcceptedConn = 0;
     if($webcontent =~ m/accepted conn: (.*?)\n/) {
         $AcceptedConn = $1;
         $AcceptedConn =~ s/^\s+|\s+$//g;
     }
-    
+
     my $ActiveProcesses= 0;
     if($webcontent =~ m/(.*)?\nactive processes: (.*?)\n/) {
         $ActiveProcesses = $2;
         $ActiveProcesses =~ s/^\s+|\s+$//g;
     }
-    
+
     my $TotalProcesses= 0;
     if($webcontent =~ m/total processes: (.*?)\n/) {
         $TotalProcesses = $1;
         $TotalProcesses =~ s/^\s+|\s+$//g;
     }
-    
+
     my $IdleProcesses= 0;
     if($webcontent =~ m/idle processes: (.*?)\n/) {
         $IdleProcesses = $1;
         $IdleProcesses =~ s/^\s+|\s+$//g;
     }
-    
+
     my $MaxActiveProcesses= 0;
     if($webcontent =~ m/max active processes: (.*?)\n/) {
         $MaxActiveProcesses = $1;
         $MaxActiveProcesses =~ s/^\s+|\s+$//g;
     }
-    
+
     my $MaxChildrenReached= 0;
     if($webcontent =~ m/max children reached: (.*?)\n/) {
         $MaxChildrenReached = $1;
         $MaxChildrenReached =~ s/^\s+|\s+$//g;
     }
-    
+
     my $ListenQueue= 0;
     if($webcontent =~ m/\nlisten queue: (.*?)\n/) {
         $ListenQueue = $1;
         $ListenQueue =~ s/^\s+|\s+$//g;
     }
-    
+
     my $ListenQueueLen= 0;
     if($webcontent =~ m/listen queue len: (.*?)\n/) {
         $ListenQueueLen = $1;
         $ListenQueueLen =~ s/^\s+|\s+$//g;
     }
-    
+
     my $MaxListenQueue= 0;
     if($webcontent =~ m/max listen queue: (.*?)\n/) {
         $MaxListenQueue = $1;
@@ -400,7 +486,7 @@ if ($response->is_success) {
 
     my $TempFile = $TempPath.$o_host.'_check_phpfpm_status'.md5_hex($url);
     my $FH;
-    
+
     my $LastUptime = 0;
     my $LastAcceptedConn = 0;
     my $LastMaxChildrenReached = 0;
@@ -418,14 +504,14 @@ if ($response->is_success) {
             print ("LastUptime: $LastUptime LastAcceptedConn: $LastAcceptedConn LastMaxChildrenReached: $LastMaxChildrenReached LastMaxListenQueue: $LastMaxListenQueue \n");
         }
     }
-    
+
     open ($FH, '>'.$TempFile) or nagios_exit($phpfpm,"UNKNOWN","unable to write temporary data in :".$TempFile);
-    print $FH "$Uptime\n"; 
+    print $FH "$Uptime\n";
     print $FH "$AcceptedConn\n";
     print $FH "$MaxChildrenReached\n";
     print $FH "$MaxListenQueue\n";
     close ($FH);
-  
+
     my $ReqPerSec = 0;
     my $Accesses = 0;
     my $MaxChildrenReachedNew = 0;
@@ -433,7 +519,7 @@ if ($response->is_success) {
     # check only if this counter may have been incremented
     # but not if it may have been too much incremented
     # and something should have happened in the server
-    if ( ($Uptime>$LastUptime) 
+    if ( ($Uptime>$LastUptime)
       && ($Uptime-$LastUptime<$MaxUptimeDif)
       && ($AcceptedConn>=$LastAcceptedConn)
       && ($MaxListenQueue>=$LastMaxListenQueue)
@@ -476,9 +562,72 @@ if ($response->is_success) {
     if (defined($o_warn_p_level) && (-1!=$o_warn_p_level) && ($IdleProcesses <= $o_warn_p_level)) {
         nagios_exit($phpfpm,"WARNING", "Idle workers are low " . $InfoData,$PerfData);
     }
-    
+
     nagios_exit($phpfpm,"OK",$InfoData,$PerfData);
-    
+
 } else {
     nagios_exit($phpfpm,"CRITICAL", $response->status_line);
+}
+
+# ---------------------------------------------------------------------------
+# Adding a small parser for response coming in fastcgi mode
+# to have some methods with same signature as the response from LWP::UserAgent
+package fcgi_response;
+
+sub new() {
+    my ($class) = shift;
+    my ($raw) = shift;
+    my ($debug) = shift;
+
+    my @parts = split /\r\n\r\n/, $raw;
+    my @headers = split /\r\n/, $parts[0];
+    my $body = $parts[1];
+
+    #if (defined ($debug)) {
+    #    print "\nDEBUG FCGI Resp HEADERS:\n";
+    #    print join("\r\n",@headers);
+    #    print "\nDEBUG FCGI Resp BODY:\n";
+    #    print $body;
+    #}
+
+    my $self = {
+        "raw" => $raw,
+        "headrs" => [@headers],
+        "body" => $body,
+        "debug" => $debug,
+    };
+
+    bless($self, $class);
+
+    return $self;
+}
+
+sub is_success() {
+    my ($self) = shift;
+    return not $self->status_line()
+}
+sub status_line() {
+    my ($self) = shift;
+    return $self->header('Status');
+}
+sub decoded_content() {
+    my ($self) = shift;
+    # we do not, in fact, apply any decoding
+    return $self->{body}
+}
+sub header() {
+    my ($self) = shift;
+    my ($seek) = shift;
+
+    for my $i (0 .. $#{$self->{headrs}}) {
+        my $line = $self->{headrs}[$i];
+        my @parts = split /:/, $line;
+        if ($parts[0] eq $seek) {
+            if (defined($self->{debug})) {
+                print "\nDEBUG: header $seek found => " . $parts[1];
+            }
+            return $parts[1];
+        }
+    }
+    return 0;
 }
