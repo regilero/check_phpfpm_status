@@ -15,6 +15,7 @@
 # issues & updates: http://github.com/regilero/check_phpfpm_status
 use strict;
 use Getopt::Long;
+use IO::Socket::SSL;
 use LWP::UserAgent;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Digest::MD5 qw(md5 md5_hex);
@@ -54,11 +55,16 @@ my $o_debug=        undef;  # debug mode
 my $o_servername=   undef;  # ServerName (host header in http request)
 my $o_https=        undef;  # SSL (HTTPS) mode
 my $o_verify_hostname=  0;	# SSL Hostname verification, False by default
+my $o_tls=              0;  # Use TLS instead of SSL version, uses SSLv23 by default
 
 my $TempPath = '/tmp/';     # temp path
 my $MaxUptimeDif = 60*30;   # Maximum uptime difference (seconds), default 30 minutes
 
 my $phpfpm = 'PHP-FPM'; # Could be used to store version also
+
+# SSL Versions
+my $ssl_version = 'SSLv23:!SSLv2:!SSLv3';
+my $tls_version = 'TLSv1';
 
 # functions
 sub show_versioninfo { print "$Name version : $Version\n"; }
@@ -129,6 +135,8 @@ sub help {
    prints version number
 -x, --verifyhostname
    verify hostname from ssl cert, set it to 0 to ignore bad hostname from cert
+-T, --tls
+   Use TLS over SSL for SSL protocol
 
 Note :
   3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
@@ -176,6 +184,7 @@ sub check_options {
       'c=s'   => \$o_crit_thresold,		'critical=s'    => \$o_crit_thresold,
       't:i'   => \$o_timeout,      		'timeout:i'     		=> \$o_timeout,
       'x:i'   => \$o_verify_hostname,	'verifyhostname:i'		=> \$o_verify_hostname,
+      'T'     => \$o_tls,               'tls'           => \$o_tls,
     );
 
     if (defined ($o_help)) { 
@@ -245,6 +254,7 @@ my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
 my $timing0 = [gettimeofday];
 my $response = undef;
 my $url = undef;
+my $ssl_protocol = undef;
 
 if (!defined($o_url)) {
     $o_url='/fpm-status';
@@ -255,6 +265,24 @@ if (!defined($o_url)) {
 my $proto='http://';
 if(defined($o_https)) {
     $proto='https://';
+    
+    # Allow user to force TLS version:
+    if($o_tls) {
+        $ssl_protocol = $tls_version;
+    } else {
+        $ssl_protocol = $ssl_version;
+    }
+
+    # Enable SSL/TLS support for modern ciphers
+    my $context = new IO::Socket::SSL::SSL_Context(
+        SSL_version => $ssl_protocol,
+        SSL_verify_mode => Net::SSLeay::VERIFY_NONE(),
+    );
+    IO::Socket::SSL::set_default_context($context);
+    if (defined ($o_debug)) {
+        print "\nDEBUG: SSL Version set to $ssl_protocol \n";
+    }
+
     if (defined($o_port) && $o_port!=443) {
         if (defined ($o_debug)) {
             print "\nDEBUG: Notice: port is defined at $o_port and not 443, check you really want that in SSL mode! \n";
