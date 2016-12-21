@@ -391,7 +391,7 @@ if ($response->is_success) {
     if (defined ($o_debug)) {
         print "\nDEBUG: HTTP response:";
         print $response->status_line;
-        print "\n".$response->header('Content-Type');
+        print "\nContent-Type => ".$response->header('Content-Type');
         print "\n";
         print $webcontent;
     }
@@ -622,7 +622,7 @@ sub header() {
     for my $i (0 .. $#{$self->{headrs}}) {
         my $line = $self->{headrs}[$i];
         my @parts = split /:/, $line;
-        if ($parts[0] eq $seek) {
+        if (lc $parts[0] eq lc $seek) {
             if (defined($self->{debug})) {
                 print "\nDEBUG: header $seek found => " . $parts[1];
             }
