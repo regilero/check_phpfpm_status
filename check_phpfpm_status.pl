@@ -315,7 +315,7 @@ if (defined($o_fastcgi)) {
     eval "use LWP::UserAgent;"; die $@ if $@;
     #use LWP::UserAgent;
 
-    @lwp_opts = (
+    my @lwp_opts = (
         protocols_allowed => ['http', 'https'],
         timeout => $o_timeout
     );
@@ -327,7 +327,7 @@ if (defined($o_fastcgi)) {
             print "\nDEBUG: Notice: You are using a version of LWP::UserAgent older than 6.10, we cannot set verify_hostname SSL option on this version (So it will always be checked).\n";
         }
     }
-    my $ua = LWP::UserAgent->new(@lwp_opts)
+    my $ua = LWP::UserAgent->new(@lwp_opts);
 
     # we need to enforce the HTTP request is made to the Nagios Host IP and
     # not on the DNS related IP for that domain
