@@ -2,8 +2,8 @@ CHECK_PHPFPM_STATUS
 ===================
 
 Nagios check checking the fpm-status page report from php-fpm. Tracking Idle processes, max processes reached and process queue.
-You can use this script to draw some graphics. Details for centreon graphics are available in the CENTREON_GRAPHICS.txt doc
-PHP-FPM Monitor for Nagios version 0.1
+You can use this script to draw some graphics.
+PHP-FPM Monitor for Nagios version 0.12
 GPL licence, (c)2012 Leroy Regis
 
 Installation:

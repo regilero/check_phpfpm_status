@@ -1,4 +1,7 @@
-version 0.11 Beta (01-2016) - current moving version
+version 0.12 Beta (12-2016) - current moving version
+* verifyhostname only available for LWP::UserAgent->VERSION >= 6.10 (fix #15)
+
+version 0.11 Beta (01-2016)
 * add -x/ --verifyhostname SSL Hostname verification Option (@Vebryn)
 * add default path for icinga in lib
 
