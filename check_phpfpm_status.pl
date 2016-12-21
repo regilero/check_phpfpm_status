@@ -30,7 +30,7 @@ use lib "/usr/lib/nagios/plugins";
 use utils qw($TIMEOUT);
 
 # Globals
-my $Version='0.10';
+my $Version='0.12';
 my $Name=$0;
 
 my $o_host =        undef;  # hostname 
@@ -221,11 +221,21 @@ sub check_options {
 check_options();
 
 my $override_ip = $o_host;
-my $ua = LWP::UserAgent->new( 
-  protocols_allowed => ['http', 'https'], 
-  timeout => $o_timeout,
-  ssl_opts => { verify_hostname => $o_verify_hostname }
+
+@lwp_opts = (
+  protocols_allowed => ['http', 'https'],
+  timeout => $o_timeout
 );
+if (LWP::UserAgent->VERSION >= 6.10) {
+    push @lwp_opts,(ssl_opts => { verify_hostname => $o_verify_hostname });
+} else {
+    # unsupported options on old version, cannot do anything
+    if (defined ($o_debug)) {
+        print "\nDEBUG: Notice: You are using a version of LWP::UserAgent older than 6.10, we cannot set verify_hostname SSL option on this version (So it will always be checked).\n";
+    }
+}
+my $ua = LWP::UserAgent->new(@lwp_opts)
+
 # we need to enforce the HTTP request is made on the Nagios Host IP and
 # not on the DNS related IP for that domain
 @LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
