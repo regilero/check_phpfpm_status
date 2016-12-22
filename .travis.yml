@@ -10,6 +10,7 @@ perl:
   - "5.8"
 before_install:
   - tests/docker/phpfpm/build.sh
+  - tests/docker/nginx/build.sh
 # command to install dependencies
 install:
   - cpanm -n -q --skip-satisfied --installdeps .
