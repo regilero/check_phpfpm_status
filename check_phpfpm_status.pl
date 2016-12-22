@@ -308,28 +308,11 @@ if (defined($o_fastcgi)) {
     eval "use LWP::UserAgent;"; die $@ if $@;
     #use LWP::UserAgent;
 
-    my @lwp_opts = (
-        protocols_allowed => ['http', 'https'],
-        timeout => $o_timeout
-    );
-    if (LWP::UserAgent->VERSION >= 6.10) {
-        push @lwp_opts,(ssl_opts => { verify_hostname => $o_verify_hostname });
-    } else {
-        # unsupported options on old version, cannot do anything
-        if (defined ($o_debug)) {
-            print "\nDEBUG: Notice: You are using a version of LWP::UserAgent older than 6.10, we cannot set verify_hostname SSL option on this version (So it will always be checked).\n";
-        }
-    }
-    my $ua = LWP::UserAgent->new(@lwp_opts);
-
-    # we need to enforce the HTTP request is made to the Nagios Host IP and
-    # not on the DNS related IP for that domain
-    @LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
-    # this prevent 'used only once' warning in -w mode
-    my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
-
     my $proto='http://';
     if(defined($o_https)) {
+        if ($o_https eq "") {
+            $o_https = 'TLSv1';
+        }
         $proto='https://';
         if (defined($o_port) && $o_port!=443) {
             if (defined ($o_debug)) {
@@ -337,6 +320,7 @@ if (defined($o_fastcgi)) {
             }
         }
     }
+
     if (defined($o_servername)) {
         if (!defined($o_port)) {
             $url = $proto . $o_servername . $o_url;
@@ -350,10 +334,75 @@ if (defined($o_fastcgi)) {
             $url = $proto . $o_host . ':' . $o_port . $o_url;
         }
     }
+
     if (defined ($o_debug)) {
         print "\nDEBUG: HTTP url: \n";
         print $url;
     }
+
+    if (defined ($o_debug)) {
+        $ENV{HTTPS_DEBUG} = 1;
+        use Data::Dumper;
+        use IO::Socket::SSL qw( debug6 SSL_VERIFY_NONE SSL_VERIFY_PEER );
+    } else {
+        use IO::Socket::SSL qw( SSL_VERIFY_NONE SSL_VERIFY_PEER )
+    }
+
+    my %lwp_opts = (
+        timeout => $o_timeout
+    );
+
+    if(defined($o_https)) {
+
+        $lwp_opts{'protocols_allowed'} = ['https'];
+
+        my %ssl_opts = (
+            PeerAddr => $override_ip,
+        );
+
+        $ENV{'PERL_LWP_SSL_VERIFY_HOSTNAME'} = $o_verify_hostname;
+        $ssl_opts{"verify_hostname"} = $o_verify_hostname;
+        $ssl_opts{"SSL_verifycn_name"} = $o_verify_hostname;
+        # 'TLSv1' by default, but could be things like 'SSLv23:!SSLv2:!SSLv3'
+        # $ssl_opts{"SSL_version"} = $o_https;
+        #$ssl_opts{"SSL_verifycn_scheme"} = 'www';
+
+        if (defined($o_servername)) {
+            $ssl_opts{"SSL_hostname"} = $o_servername;
+        }
+        if (not $o_verify_hostname) {
+            # seems the verify_hostname parameters is not enough
+            $ssl_opts{"SSL_verify_mode"} = SSL_VERIFY_NONE;
+        } else {
+            eval "use Mozilla::CA;"; die $@ if $@;
+            #$ssl_opts{"SSL_ca_path"} = '/usr/share/ca-certificates/mozilla/';
+            #$ENV{'HTTPS_CA_DIR'} = '/usr/share/ca-certificates/mozilla/';
+            #$ENV{'PERL_LWP_SSL_CA_PATH'} = '/usr/share/ca-certificates/mozilla/';
+            $ENV{'HTTPS_CA_FILE'} = Mozilla::CA::SSL_ca_file();
+            $ENV{'PERL_LWP_SSL_CA_FILE'} = Mozilla::CA::SSL_ca_file();
+            $ssl_opts{"SSL_ca_file"} = Mozilla::CA::SSL_ca_file();
+            $ssl_opts{"SSL_verify_mode"} = SSL_VERIFY_PEER;
+        }
+        IO::Socket::SSL::set_ctx_defaults(%ssl_opts);
+
+        if (LWP::UserAgent->VERSION >= 6.10) {
+            $lwp_opts{"ssl_opts"} = \%ssl_opts;
+        }
+    } else {
+        $lwp_opts{'protocols_allowed'} = ['http'];
+    }
+
+    if (defined ($o_debug)) {
+        print Dumper \%lwp_opts;
+    }
+    my $ua = LWP::UserAgent->new(%lwp_opts);
+
+    # we need to enforce the HTTP request is made to the Nagios Host IP and
+    # not on the DNS related IP for that domain
+    @LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
+
+    # this prevent 'used only once' warning in -w mode
+    my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
 
     my $req = HTTP::Request->new( GET => $url );
 
@@ -369,7 +418,12 @@ if (defined($o_fastcgi)) {
         print "IP used (better if it's an IP):" . $override_ip . "\n";
         print $req->as_string;
     }
+
     $response = $ua->request($req);
+    if (defined ($o_debug)) {
+        print "\nDEBUG: HTTP response: \n";
+        print $response->as_string;
+    }
 }
 
 my $timeelapsed = tv_interval($timing0, [gettimeofday]);
