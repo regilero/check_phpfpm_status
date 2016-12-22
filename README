@@ -13,8 +13,6 @@ dependencies
 -------------
 You need perl.
 
-You also need utils.pm (perl library provided by Nagios).
-
 If you use the script to request the php status page from a web service (usual
 case) you'll need the perl library, LWP::UserAgent (`apt-get install liblwp-protocol-https-perl` on Debian)
 
@@ -31,8 +29,8 @@ apt-get install libfcgi-perl` on Debian)
 Install of this script
 -----------------------
 
-1.  Copy check_phpfpm_status.pl to the server's nagios plugins directory (to find utils.pm).
-2.  Edit check_phpfpm_status.pl (line #25) and verify the lib path specified is correct for your platform
+1.  Copy check_phpfpm_status.pl to the server's nagios plugins directory.
+2.  Ensure the script has execution rights
 
 Script Documentation:
 =====================

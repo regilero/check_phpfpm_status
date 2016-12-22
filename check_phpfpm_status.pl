@@ -25,13 +25,6 @@ package main;
 # ensure all outputs are in UTF-8
 binmode(STDOUT, ":utf8");
 
-# Nagios specific
-# Update Nagios Plugin path according to your platform/installation
-use lib "/usr/local/nagios/libexec";
-use lib "/usr/local/icinga/libexec";
-use lib "/usr/lib/nagios/plugins";
-use utils qw($TIMEOUT);
-
 # Globals
 my $Version='0.12';
 my $Name=$0;

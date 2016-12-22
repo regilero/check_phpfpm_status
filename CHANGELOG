@@ -1,6 +1,7 @@
 version 0.12 Beta (12-2016) - current moving version
 * Add a direct fascgi mode (without using an http proxy), only for tcp/ip sockets, not file sockets.
 * verifyhostname only available for LWP::UserAgent->VERSION >= 6.10 (fix #15)
+* remove utils.pm dependency (so remove also nagios lib paths)
 
 version 0.11 Beta (01-2016)
 * add -x/ --verifyhostname SSL Hostname verification Option (@Vebryn)
