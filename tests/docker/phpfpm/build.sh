@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+cd "$(dirname "$0")"
 echo "******* Building"
 docker build -t phpfpm_alone .
 echo "****** remove old containers"
