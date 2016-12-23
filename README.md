@@ -1,17 +1,22 @@
-CHECK_PHPFPM_STATUS
-===================
+# CHECK_PHPFPM_STATUS
 
 Nagios check checking the fpm-status page report from php-fpm. Tracking Idle processes, max processes reached and process queue.
-You can use this script to draw some graphics.
+
+Support of http, https and fastgi direct mode.
+
+You can use this script to draw some graphics (perfparse).
+
 PHP-FPM Monitor for Nagios version 0.12
+
 GPL licence, (c)2012 Leroy Regis
 
-Installation:
-=============
+[![Build Status](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master)
 
-dependencies
--------------
-You need perl.
+#Installation:
+
+## dependencies
+
+You need **perl**.
 
 If you use the script to request the php status page from a web service (usual
 case) you'll need the perl library, LWP::UserAgent (`apt-get install liblwp-protocol-https-perl` on Debian)
@@ -34,15 +39,14 @@ You may not have this file, as the check_phpfpm_status.pl script is quite standa
 but you can find this file, and the tests files on the github page of the project.
 https://github.com/regilero/check_phpfpm_status
 
-Install of this script
------------------------
+## Install of this script
 
 1.  Copy check_phpfpm_status.pl to the server's nagios plugins directory.
 2.  Ensure the script has execution rights
 
-Script Documentation:
-=====================
+# Script Documentation:
 
+```
 Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-w <WARN_THRESOLD> -c <CRIT_THRESOLD>] [-V] [-d] [-f] [-u <url>] [-U user -P pass -r realm]
 -h, --help
    print this help message
@@ -132,9 +136,8 @@ check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com --ssl
   tell me if it worked for you, you may need up to date CPAN adn openSSL libs)
 
 check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com --ssl TLSv1_2 --verify-ssl 1 --cacert /etc/ssl/cacert.pem
+```
 
-
-LICENSE:
-========
+# LICENSE:
 
 GNU GPL v3
