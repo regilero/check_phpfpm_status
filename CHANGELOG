@@ -5,7 +5,7 @@ version 0.12 Beta (12-2016) - current moving version
 * rework --ssl, use TLSv1 by default, but you can alter that on the command line,
   add --cacert, --verifyhostname is now --verifyssl and still false by default
   (work by @regilero and @Auz)
-* add unit tests vi travis on github
+* add unit tests via travis on github
 
 version 0.11 Beta (01-2016)
 * add -x/ --verifyhostname SSL Hostname verification Option (@Vebryn)
