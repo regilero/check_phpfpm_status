@@ -10,7 +10,7 @@ PHP-FPM Monitor for Nagios version 0.12
 
 GPL licence, (c)2012 Leroy Regis
 
-[![Build Status](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master)
+[![Build Status](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master)](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master)
 
 #Installation:
 
