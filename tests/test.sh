@@ -138,12 +138,12 @@ run_test 3
 
 echo " * Checking version option ----------------------------------------------"
 TEST="./check_phpfpm_status.pl -V"
-EXPECTED_TEXT="check_phpfpm_status.pl version : 1.0"
+EXPECTED_TEXT="check_phpfpm_status.pl version : 1.1"
 run_test 3
 
 echo " * Checking version option ----------------------------------------------"
 TEST="./check_phpfpm_status.pl --version"
-EXPECTED_TEXT="check_phpfpm_status.pl version : 1.0"
+EXPECTED_TEXT="check_phpfpm_status.pl version : 1.1"
 run_test 3
 
 #FIXME: TODO
