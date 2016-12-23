@@ -6,7 +6,7 @@ Support of http, https and fastgi direct mode.
 
 You can use this script to draw some graphics (perfparse).
 
-PHP-FPM Monitor for Nagios version 0.12
+PHP-FPM Monitor for Nagios version 1.0
 
 GPL licence, (c)2012 Leroy Regis
 

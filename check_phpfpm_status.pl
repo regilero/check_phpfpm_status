@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # check_phpfpm_status.pl
-# Version : 0.12
+# Version : 1.0
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by
@@ -26,7 +26,7 @@ package main;
 binmode(STDOUT, ":utf8");
 
 # Globals
-my $Version='0.12';
+my $Version='1.0';
 my $Name=$0;
 
 my $o_host =        undef;  # hostname
