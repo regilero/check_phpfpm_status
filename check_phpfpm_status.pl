@@ -1,6 +1,6 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 # check_phpfpm_status.pl
-# Version : 0.11
+# Version : 0.12
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by
@@ -50,7 +50,8 @@ my $o_debug=        undef;  # debug mode
 my $o_fastcgi=      undef;  # direct fastcgi mode (without an http->fastcgi proxy)
 my $o_servername=   undef;  # ServerName (host header in http request)
 my $o_https=        undef;  # SSL (HTTPS) mode
-my $o_verify_hostname=  0;	# SSL Hostname verification, False by default
+my $o_verify_ssl=   0;      # SSL verification, False by default
+my $o_cacert_file=  undef;  # Path to cacert.pem file
 
 my $TempPath = '/tmp/';     # temp path
 my $MaxUptimeDif = 60*30;   # Maximum uptime difference (seconds), default 30 minutes
@@ -104,8 +105,6 @@ sub help {
    Specific URL (only the path part of it in fact) to use, instead of the default "/fpm-status"
 -s, --servername=SERVERNAME
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
--S, --ssl
-   Wether we should use HTTPS instead of HTTP
 -f, --fastcgi
    Connect directly to php-fpm via network or local socket, using fastcgi protocol instead of HTTP.
 -U, --user=user
@@ -118,6 +117,15 @@ sub help {
    Debug mode (show http request response)
 -t, --timeout=INTEGER
    timeout in seconds (Default: $o_timeout)
+-S, --ssl
+   Wether we should use HTTPS instead of HTTP. Note that you can give some extra parameters to this settings. Default value is 'TLSv1'
+   but you could use things like 'TLSv1_1' or 'TLSV1_2' (or even 'SSLv23:!SSLv2:!SSLv3' for old stuff).
+-x, --verifyssl, --verifyhostname
+   verify certificate and hostname from ssl cert, default is 0 (no security), set it to 1 to really make SSL peer name and certificater checks.
+   'verifyhostname' is the old deprecated name of this option.
+-X, --cacert
+   Full path to the cacert.pem certificate authority used to verify ssl certificates (use with --verifyssl).
+   if not given the cacert from Mozilla::CA cpan plugin will be used.
 -w, --warn=MIN_AVAILABLE_PROCESSES,PROC_MAX_REACHED,QUEUE_MAX_REACHED
    number of available workers, or max states reached that will cause a warning
    -1 for no warning
@@ -126,8 +134,6 @@ sub help {
    -1 for no CRITICAL
 -V, --version
    prints version number
--x, --verifyhostname
-   verify hostname from ssl cert, set it to 0 to ignore bad hostname from cert
 
 Note :
   3 items can be managed on this check, this is why -w and -c parameters are using 3 values thresolds
@@ -166,6 +172,17 @@ check_phpfpm_status.pl -H 127.0.0.1 -s nagios.example.com -w 1,1,1 -c 0,2,2
 
 check_phpfpm_status.pl -H 127.0.0.1 --fastcgi -p 9002 -w 1,1,1 -c 0,2,2
 
+HTTPS/SSL:
+
+  Adding --ssl you can reach an https host:
+
+check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com --ssl
+
+  Check --verify-ssl (false by defaut) --cacert and --sl for more options, like below
+  (note that certificate checks never wortked on my side, add -d for full debug and
+  tell me if it worked for you, you may need up to date CPAN adn openSSL libs)
+
+check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com --ssl TLSv1_2 --verify-ssl 1 --cacert /etc/ssl/cacert.pem
 
 EOT
 }
@@ -173,22 +190,24 @@ EOT
 sub check_options {
     Getopt::Long::Configure ("bundling");
     GetOptions(
-      'h'     => \$o_help,         'help'          => \$o_help,
-      'd'     => \$o_debug,        'debug'         => \$o_debug,
-      'f'     => \$o_fastcgi,      'fastcgi'       => \$o_fastcgi,
-      'H:s'   => \$o_host,         'hostname:s'    => \$o_host,
-      's:s'   => \$o_servername,   'servername:s'  => \$o_servername,
-      'S:s'   => \$o_https,        'ssl:s'         => \$o_https,
-      'u:s'   => \$o_url,          'url:s'         => \$o_url,
-      'U:s'   => \$o_user,         'user:s'        => \$o_user,
-      'P:s'   => \$o_pass,         'pass:s'        => \$o_pass,
-      'r:s'   => \$o_realm,        'realm:s'       => \$o_realm,
-      'p:i'   => \$o_port,         		'port:i'        => \$o_port,
-      'V'     => \$o_version,      		'version'       => \$o_version,
-      'w=s'   => \$o_warn_thresold,		'warn=s'        => \$o_warn_thresold,
-      'c=s'   => \$o_crit_thresold,		'critical=s'    => \$o_crit_thresold,
-      't:i'   => \$o_timeout,      		'timeout:i'     		=> \$o_timeout,
-      'x:i'   => \$o_verify_hostname,	'verifyhostname:i'		=> \$o_verify_hostname,
+      'h'     => \$o_help,          'help'             => \$o_help,
+      'd'     => \$o_debug,         'debug'            => \$o_debug,
+      'f'     => \$o_fastcgi,       'fastcgi'          => \$o_fastcgi,
+      'H:s'   => \$o_host,          'hostname:s'       => \$o_host,
+      's:s'   => \$o_servername,    'servername:s'     => \$o_servername,
+      'S:s'   => \$o_https,         'ssl:s'            => \$o_https,
+      'u:s'   => \$o_url,           'url:s'            => \$o_url,
+      'U:s'   => \$o_user,          'user:s'           => \$o_user,
+      'P:s'   => \$o_pass,          'pass:s'           => \$o_pass,
+      'r:s'   => \$o_realm,         'realm:s'          => \$o_realm,
+      'p:i'   => \$o_port,          'port:i'           => \$o_port,
+      'V'     => \$o_version,       'version'          => \$o_version,
+      'w=s'   => \$o_warn_thresold, 'warn=s'           => \$o_warn_thresold,
+      'c=s'   => \$o_crit_thresold, 'critical=s'       => \$o_crit_thresold,
+      't:i'   => \$o_timeout,       'timeout:i'        => \$o_timeout,
+      'x:i'   => \$o_verify_ssl,    'verifyhostname:i' => \$o_verify_ssl,
+                                    'verifyssl:i'      => \$o_verify_ssl,
+      'X:s'   => \$o_cacert_file,   'cacert:s' => \$o_cacert_file,
     );
 
     if (defined ($o_help)) {
@@ -262,11 +281,10 @@ if (!defined($o_url)) {
 
 if (defined($o_fastcgi)) {
     # -- FASTCGI
-    if (defined ($o_debug)) {
-        print "\nDEBUG: loading Perl fastCgi module 'FCGI::Client::Connection', hope you've installed it...";
-    }
-    eval "use FCGI::Client::Connection;"; die $@ if $@;
-    eval "use IO::Socket::INET"; die $@ if $@;
+    eval "use FCGI::Client::Connection;";
+    nagios_exit($phpfpm,"UNKNOWN","You need to activate FCGI::Client::Connection CPAN module for this feature: " . $@) if $@;
+    eval "use IO::Socket::INET";
+    nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::INET CPAN module for this feature: " . $@) if $@;
 
     if (!defined($o_port)) {
         $o_port = 9000;
@@ -305,31 +323,15 @@ if (defined($o_fastcgi)) {
     $response = fcgi_response->new($stdout, $o_debug);
 } else {
     # -- HTTP
-    eval "use LWP::UserAgent;"; die $@ if $@;
+    eval "use LWP::UserAgent;";
+    nagios_exit($phpfpm,"UNKNOWN","You need to activate LWP::UserAgent CPAN module for this feature: " . $@) if $@;
     #use LWP::UserAgent;
-
-    my @lwp_opts = (
-        protocols_allowed => ['http', 'https'],
-        timeout => $o_timeout
-    );
-    if (LWP::UserAgent->VERSION >= 6.10) {
-        push @lwp_opts,(ssl_opts => { verify_hostname => $o_verify_hostname });
-    } else {
-        # unsupported options on old version, cannot do anything
-        if (defined ($o_debug)) {
-            print "\nDEBUG: Notice: You are using a version of LWP::UserAgent older than 6.10, we cannot set verify_hostname SSL option on this version (So it will always be checked).\n";
-        }
-    }
-    my $ua = LWP::UserAgent->new(@lwp_opts);
-
-    # we need to enforce the HTTP request is made to the Nagios Host IP and
-    # not on the DNS related IP for that domain
-    @LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
-    # this prevent 'used only once' warning in -w mode
-    my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
 
     my $proto='http://';
     if(defined($o_https)) {
+        if ($o_https eq "") {
+            $o_https = 'TLSv1';
+        }
         $proto='https://';
         if (defined($o_port) && $o_port!=443) {
             if (defined ($o_debug)) {
@@ -337,6 +339,7 @@ if (defined($o_fastcgi)) {
             }
         }
     }
+
     if (defined($o_servername)) {
         if (!defined($o_port)) {
             $url = $proto . $o_servername . $o_url;
@@ -350,10 +353,81 @@ if (defined($o_fastcgi)) {
             $url = $proto . $o_host . ':' . $o_port . $o_url;
         }
     }
+
     if (defined ($o_debug)) {
         print "\nDEBUG: HTTP url: \n";
         print $url;
     }
+
+    my %lwp_opts = (
+        timeout => $o_timeout
+    );
+
+    if(defined($o_https)) {
+
+        use IO::Socket::SSL qw( SSL_VERIFY_NONE SSL_VERIFY_PEER );
+        if (defined ($o_debug)) {
+            $ENV{HTTPS_DEBUG} = 1;
+            use Data::Dumper;
+            eval "use IO::Socket::SSL qw( debug3 SSL_VERIFY_NONE SSL_VERIFY_PEER )"; die $@ if $@;
+        } else {
+            $ENV{HTTPS_DEBUG} = 0;
+        }
+
+        $lwp_opts{'protocols_allowed'} = ['https'];
+
+        my %ssl_opts = (
+            PeerAddr => $override_ip,
+        );
+
+        $ENV{'PERL_LWP_SSL_VERIFY_HOSTNAME'} = $o_verify_ssl;
+        $ssl_opts{"verify_hostname"} = $o_verify_ssl;
+        $ssl_opts{"SSL_verifycn_name"} = $o_verify_ssl;
+        # 'TLSv1' by default, but could be things like 'SSLv3' or 'TLSv1_2', etc.
+        $ssl_opts{"SSL_version"} = $o_https;
+        #$ssl_opts{"SSL_verifycn_scheme"} = 'www';
+
+        if (defined($o_servername)) {
+            $ssl_opts{"SSL_hostname"} = $o_servername;
+        }
+        if (not $o_verify_ssl) {
+            # seems the verify_hostname parameters is not enough
+            $ssl_opts{"SSL_verify_mode"} = SSL_VERIFY_NONE;
+        } else {
+
+            if (!defined($o_cacert_file)) {
+                eval "use Mozilla::CA;";
+                nagios_exit($phpfpm,"UNKNOWN","You need to activate Mozilla::CA CPAN module for this feature, or use --cacert option: " . $@) if $@;
+                $o_cacert_file = Mozilla::CA::SSL_ca_file();
+            }
+            #$ssl_opts{"SSL_ca_path"} = '/usr/share/ca-certificates/mozilla/';
+            #$ENV{'HTTPS_CA_DIR'} = '/usr/share/ca-certificates/mozilla/';
+            #$ENV{'PERL_LWP_SSL_CA_PATH'} = '/usr/share/ca-certificates/mozilla/';
+            $ENV{'HTTPS_CA_FILE'} = $o_cacert_file;
+            $ENV{'PERL_LWP_SSL_CA_FILE'} = $o_cacert_file;
+            $ssl_opts{"SSL_ca_file"} = $o_cacert_file;
+            $ssl_opts{"SSL_verify_mode"} = SSL_VERIFY_PEER;
+        }
+        IO::Socket::SSL::set_ctx_defaults(%ssl_opts);
+
+        if (LWP::UserAgent->VERSION >= 6.10) {
+            $lwp_opts{"ssl_opts"} = \%ssl_opts;
+        }
+    } else {
+        $lwp_opts{'protocols_allowed'} = ['http'];
+    }
+
+    if (defined ($o_debug)) {
+        print Dumper \%lwp_opts;
+    }
+    my $ua = LWP::UserAgent->new(%lwp_opts);
+
+    # we need to enforce the HTTP request is made to the Nagios Host IP and
+    # not on the DNS related IP for that domain
+    @LWP::Protocol::http::EXTRA_SOCK_OPTS = ( PeerAddr => $override_ip );
+
+    # this prevent 'used only once' warning in -w mode
+    my $ua_settings = @LWP::Protocol::http::EXTRA_SOCK_OPTS;
 
     my $req = HTTP::Request->new( GET => $url );
 
@@ -369,7 +443,12 @@ if (defined($o_fastcgi)) {
         print "IP used (better if it's an IP):" . $override_ip . "\n";
         print $req->as_string;
     }
+
     $response = $ua->request($req);
+    if (defined ($o_debug)) {
+        print "\nDEBUG: HTTP response: \n";
+        print $response->as_string;
+    }
 }
 
 my $timeelapsed = tv_interval($timing0, [gettimeofday]);
