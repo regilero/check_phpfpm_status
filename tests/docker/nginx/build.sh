@@ -5,7 +5,7 @@ ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_
 echo "******* Building"
 cd classic
 docker build -t nginx_classic .
-cd ../tls11_only
+cd ../tls11
 docker build -t nginx_tls11_only .
 cd ../bad_ssl
 docker build -t nginx_bad_ssl .
