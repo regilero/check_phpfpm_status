@@ -44,6 +44,24 @@ https://github.com/regilero/check_phpfpm_status
 1.  Copy check_phpfpm_status.pl to the server's nagios plugins directory.
 2.  Ensure the script has execution rights
 
+## Icinga2 configuration
+Copy `check_phpfpm_status.icinga2.conf` to the icinga2 zone.
+
+Define a new service for all Linux hosts with `vars.phpfpm`, for example:
+
+```
+apply Service "PHP-fpm process" {
+  import "generic-service"
+  check_command = "phpfpm"
+  vars.phpfpm_user = "user"
+  vars.phpfpm_pass = "pass"
+  vars.phpfpm_url = "/status"
+  vars.phpfpm_critical = "0,2,5"
+  command_endpoint = host.vars.client_endpoint
+  assign where host.vars.client_endpoint && host.vars.os == "Linux" && host.vars.phpfpm
+}
+```
+
 # Script Documentation:
 
 ```
