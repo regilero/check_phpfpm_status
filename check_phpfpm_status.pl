@@ -48,6 +48,7 @@ my $o_warn_thresold=undef;  # warning thresolds entry
 my $o_crit_thresold=undef;  # critical thresolds entry
 my $o_debug=        undef;  # debug mode
 my $o_fastcgi=      undef;  # direct fastcgi mode (without an http->fastcgi proxy)
+my $o_unixsocket=   undef;  # use a UNIX socket (in direct fastcgi mode)
 my $o_servername=   undef;  # ServerName (host header in http request)
 my $o_https=        undef;  # SSL (HTTPS) mode
 my $o_verify_ssl=   0;      # SSL verification, False by default
@@ -107,6 +108,8 @@ sub help {
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
 -f, --fastcgi
    Connect directly to php-fpm via network or local socket, using fastcgi protocol instead of HTTP.
+-u, --unixsocket
+   Connect to php-fpm via UNIX socket, implies --fastcgi
 -U, --user=user
    Username for basic auth
 -P, --pass=PASS
@@ -165,12 +168,18 @@ check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com
 check_phpfpm_status.pl -H 127.0.0.1 -s nagios.example.com -w 1,1,1 -c 0,2,2
 
   All these examples used an HTTP proxy (like Nginx or Apache) in front of php-fpm. If php-fpm is listening on a tcp/ip socket
-  you can also make a direct request on this port (9000 by default) using the fastcgi protocol. You'll need the FastCGI client
-  tools enabled in Perl (check the README) and the command would use the -f or --fastcgi option (note that SSL or servername
-  options are useless in this mode).
-  This can be especially usefull if you use php-fpm in an isolated env, without the HTTP proxy support (like in a docker container):
+  you can also make a direct request on this port (9000 by default) or to an UNIX socket by using the fastcgi protocol. You'll
+  need the FastCGI client tools enabled in Perl (check the README) and the command would use the -f or --fastcgi and eventually
+  the --unixsocket option (note that SSL or servername options are useless in this mode).
+  This can be especially usefull if you use php-fpm in an isolated env, without the HTTP proxy support (like in a docker container).
+
+  Connect to an INET socket on port 9002:
 
 check_phpfpm_status.pl -H 127.0.0.1 --fastcgi -p 9002 -w 1,1,1 -c 0,2,2
+
+  Connect to the UNIX socket listening in /run/php/php-fpm.sock with a non-standard URL:
+
+check_phpfpm_status.pl -H 127.0.0.1 --fastcgi --unixsocket /run/php/php-fpm.sock -u /secret-status -w 1,1,1 -c 0,2,2
 
 HTTPS/SSL:
 
@@ -193,6 +202,7 @@ sub check_options {
       'h'     => \$o_help,          'help'             => \$o_help,
       'd'     => \$o_debug,         'debug'            => \$o_debug,
       'f'     => \$o_fastcgi,       'fastcgi'          => \$o_fastcgi,
+                                    'unixsocket:s'     => \$o_unixsocket,
       'H:s'   => \$o_host,          'hostname:s'       => \$o_host,
       's:s'   => \$o_servername,    'servername:s'     => \$o_servername,
       'S:s'   => \$o_https,         'ssl:s'            => \$o_https,
@@ -207,7 +217,7 @@ sub check_options {
       't:i'   => \$o_timeout,       'timeout:i'        => \$o_timeout,
       'x:i'   => \$o_verify_ssl,    'verifyhostname:i' => \$o_verify_ssl,
                                     'verifyssl:i'      => \$o_verify_ssl,
-      'X:s'   => \$o_cacert_file,   'cacert:s' => \$o_cacert_file,
+      'X:s'   => \$o_cacert_file,   'cacert:s'         => \$o_cacert_file,
     );
 
     if (defined ($o_help)) {
@@ -231,6 +241,9 @@ sub check_options {
     }
     if (defined($o_fastcgi) && defined($o_https)) {
         nagios_exit($phpfpm,"UNKNOWN","You cannot use both --fastcgi and --ssl options, we do not use http (nor https) when we use direct fastcgi access!");
+    }
+    if (defined($o_unixsocket) && not defined($o_fastcgi)) {
+        $o_fastcgi = 1;
     }
     if (defined($o_debug)) {
         print("\nDebug thresolds: \nWarning: ($o_warn_thresold) => Min Idle: $o_warn_p_level Max Reached :$o_warn_m_level MaxQueue: $o_warn_q_level");
@@ -285,16 +298,29 @@ if (defined($o_fastcgi)) {
     nagios_exit($phpfpm,"UNKNOWN","You need to activate FCGI::Client::Connection CPAN module for this feature: " . $@) if $@;
     eval "use IO::Socket::INET";
     nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::INET CPAN module for this feature: " . $@) if $@;
+    eval "use IO::Socket::UNIX";
+    nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::UNIX CPAN module for this feature: " . $@) if $@;
 
-    if (!defined($o_port)) {
-        $o_port = 9000;
-    }
-    my $sock = IO::Socket::INET->new(
-        PeerAddr => $override_ip,
-        PeerPort => $o_port,
-    );
-    if (!$sock) {
-        nagios_exit($phpfpm,"CRITICAL", "Cannot connect to  $override_ip : $o_port !");
+    my $sock;
+    if (defined($o_unixsocket)) {
+        $sock = IO::Socket::UNIX->new(
+            Type => SOCK_STREAM(),
+            Peer => $o_unixsocket,
+        );
+        if (!$sock) {
+            nagios_exit($phpfpm,"CRITICAL", "Cannot connect to UNIX socket $o_unixsocket !");
+        }
+    } else {
+        if (!defined($o_port)) {
+            $o_port = 9000;
+        }
+        $sock = IO::Socket::INET->new(
+            PeerAddr => $override_ip,
+            PeerPort => $o_port,
+        );
+        if (!$sock) {
+            nagios_exit($phpfpm,"CRITICAL", "Cannot connect to $override_ip : $o_port !");
+        }
     }
     my $fastcgiClient = FCGI::Client::Connection->new(sock => $sock);
     $url = $o_url;
