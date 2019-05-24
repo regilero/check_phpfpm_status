@@ -12,9 +12,9 @@ GPL licence, (c)2012 Leroy Regis
 
 [![Build Status](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master)](https://api.travis-ci.org/regilero/check_phpfpm_status.svg?branch=master)
 
-#Installation:
+# Installation
 
-## dependencies
+## Dependencies
 
 You need **perl**.
 
@@ -45,6 +45,7 @@ https://github.com/regilero/check_phpfpm_status
 2.  Ensure the script has execution rights
 
 ## Icinga2 configuration
+
 Copy `check_phpfpm_status.icinga2.conf` to the icinga2 zone.
 
 Define a new service for all Linux hosts with `vars.phpfpm`, for example:
@@ -62,7 +63,7 @@ apply Service "PHP-fpm process" {
 }
 ```
 
-# Script Documentation:
+# Script Documentation
 
 ```
 Usage: ./check_phpfpm_status.pl -H <host ip> [-p <port>] [-s servername] [-t <timeout>] [-w <WARN_THRESOLD> -c <CRIT_THRESOLD>] [-V] [-d] [-f] [-u <url>] [-U user -P pass -r realm]
@@ -156,6 +157,6 @@ check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com --ssl
 check_phpfpm_status.pl -H 10.0.0.10 -s mydomain.example.com --ssl TLSv1_2 --verify-ssl 1 --cacert /etc/ssl/cacert.pem
 ```
 
-# LICENSE:
+# LICENSE
 
 GNU GPL v3
