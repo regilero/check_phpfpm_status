@@ -296,13 +296,11 @@ if (defined($o_fastcgi)) {
     # -- FASTCGI
     eval "use FCGI::Client::Connection;";
     nagios_exit($phpfpm,"UNKNOWN","You need to activate FCGI::Client::Connection CPAN module for this feature: " . $@) if $@;
-    eval "use IO::Socket::INET";
-    nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::INET CPAN module for this feature: " . $@) if $@;
-    eval "use IO::Socket::UNIX";
-    nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::UNIX CPAN module for this feature: " . $@) if $@;
 
     my $sock;
     if (defined($o_unixsocket)) {
+        eval "use IO::Socket::UNIX";
+        nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::UNIX CPAN module for this feature: " . $@) if $@;
         $sock = IO::Socket::UNIX->new(
             Type => SOCK_STREAM(),
             Peer => $o_unixsocket,
@@ -311,6 +309,8 @@ if (defined($o_fastcgi)) {
             nagios_exit($phpfpm,"CRITICAL", "Cannot connect to UNIX socket $o_unixsocket !");
         }
     } else {
+        eval "use IO::Socket::INET";
+        nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::INET CPAN module for this feature: " . $@) if $@;
         if (!defined($o_port)) {
             $o_port = 9000;
         }
