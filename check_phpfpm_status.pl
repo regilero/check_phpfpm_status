@@ -233,7 +233,7 @@ sub check_options {
         nagios_exit($phpfpm,"UNKNOWN","You cannot use both --fastcgi and --ssl options, we do not use http (nor https) when we use direct fastcgi access!");
     }
     if (defined($o_debug)) {
-        print("\nDebug thresholds: \nWarning: ($o_warn_threshold) => Min Idle: $o_warn_p_level Max Reached :$o_warn_m_level MaxQueue: $o_warn_q_level");
+        print("\nDEBUG thresholds: \nWarning: ($o_warn_threshold) => Min Idle: $o_warn_p_level Max Reached :$o_warn_m_level MaxQueue: $o_warn_q_level");
         print("\nCritical ($o_crit_threshold) => : Min Idle: $o_crit_p_level Max Reached: $o_crit_m_level MaxQueue : $o_crit_q_level\n");
     }
     if ((defined($o_warn_p_level) && defined($o_crit_p_level)) &&
@@ -572,7 +572,7 @@ if ($response->is_success) {
         $LastMaxListenQueue = <$FH>;
         close ($FH);
         if (defined ($o_debug)) {
-            print ("\nDebug: data from temporary file:\n");
+            print ("\nDEBUG: data from temporary file:\n");
             print ("LastUptime: $LastUptime LastAcceptedConn: $LastAcceptedConn LastMaxChildrenReached: $LastMaxChildrenReached LastMaxListenQueue: $LastMaxListenQueue \n");
         }
     }
