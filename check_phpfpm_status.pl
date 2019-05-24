@@ -301,6 +301,9 @@ if (defined($o_fastcgi)) {
     if (defined($o_unixsocket)) {
         eval "use IO::Socket::UNIX;";
         nagios_exit($phpfpm,"UNKNOWN","You need to activate IO::Socket::UNIX CPAN module for this feature: " . $@) if $@;
+        if (!-S $o_unixsocket) {
+          nagios_exit($phpfpm,"UNKNOWN","$o_unixsocket is not an UNIX socket");
+        }
         $sock = IO::Socket::UNIX->new(
             Type => SOCK_STREAM(),
             Peer => $o_unixsocket,
