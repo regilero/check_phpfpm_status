@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # check_phpfpm_status.pl
-# Version : 1.1
+# Version : 1.2
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by
@@ -26,7 +26,7 @@ package main;
 binmode(STDOUT, ":utf8");
 
 # Globals
-my $Version=          '1.1';
+my $Version=          '1.2';
 my $Name=             $0;
 
 my $o_host=           undef;     # hostname
@@ -556,7 +556,7 @@ if ($response->is_success) {
         print ("\nDEBUG Parse results => Pool:" . $Pool . "\nAcceptedConn:" . $AcceptedConn . "\nActiveProcesses:" . $ActiveProcesses . " TotalProcesses :".$TotalProcesses . " IdleProcesses :" .$IdleProcesses . "\nMaxActiveProcesses :" . $MaxActiveProcesses . " MaxChildrenReached :" . $MaxChildrenReached . "\nListenQueue :" . $ListenQueue . " ListenQueueLen : " .$ListenQueueLen . " MaxListenQueue: " . $MaxListenQueue ."\n");
     }
 
-    my $TempFile = $TempPath . 'check_phpfpm_status_' . $Pool . "_" . md5_hex($url);
+    my $TempFile = $TempPath . 'check_phpfpm_status_' . $o_host . '_' . $Pool . "_" . md5_hex($url);
     my $FH;
 
     # Debug
