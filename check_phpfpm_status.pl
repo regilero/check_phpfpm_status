@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # check_phpfpm_status.pl
-# Version : 1.1
+# Version : 1.2
 # Author  : regis.leroy at makina-corpus.com
 #           based on previous apache status work by Dennis D. Spreen (dennis at spreendigital.de)
 #						Based on check_apachestatus.pl v1.4 by
@@ -26,7 +26,7 @@ package main;
 binmode(STDOUT, ":utf8");
 
 # Globals
-my $Version=          '1.1';
+my $Version=          '1.2';
 my $Name=             $0;
 
 my $o_host=           undef;     # hostname
@@ -556,33 +556,41 @@ if ($response->is_success) {
         print ("\nDEBUG Parse results => Pool:" . $Pool . "\nAcceptedConn:" . $AcceptedConn . "\nActiveProcesses:" . $ActiveProcesses . " TotalProcesses :".$TotalProcesses . " IdleProcesses :" .$IdleProcesses . "\nMaxActiveProcesses :" . $MaxActiveProcesses . " MaxChildrenReached :" . $MaxChildrenReached . "\nListenQueue :" . $ListenQueue . " ListenQueueLen : " .$ListenQueueLen . " MaxListenQueue: " . $MaxListenQueue ."\n");
     }
 
-    my $TempFile = $TempPath.$o_host.'_check_phpfpm_status'.md5_hex($url);
+    my $TempFile = $TempPath . 'check_phpfpm_status_' . $o_host . '_' . $Pool . "_" . md5_hex($url);
     my $FH;
+
+    # Debug
+    if (defined ($o_debug)) {
+        print ("\nDEBUG temporary data file: " . $TempFile . "\n");
+    }
 
     my $LastUptime = 0;
     my $LastAcceptedConn = 0;
     my $LastMaxChildrenReached = 0;
     my $LastMaxListenQueue = 0;
-    if ((-e $TempFile) && (-r $TempFile) && (-w $TempFile))
-    {
-        open ($FH, '<',$TempFile) or nagios_exit($phpfpm,"UNKNOWN","unable to read temporary data from :".$TempFile);
+    if (-r $TempFile) {
+        open ($FH, '<', $TempFile) or nagios_exit($phpfpm,"UNKNOWN","unable to read temporary data from :".$TempFile);
         $LastUptime = <$FH>;
         $LastAcceptedConn = <$FH>;
         $LastMaxChildrenReached = <$FH>;
         $LastMaxListenQueue = <$FH>;
         close ($FH);
         if (defined ($o_debug)) {
-            print ("\nDEBUG: data from temporary file:\n");
+            print ("\nDEBUG: read data from temporary file:\n");
             print ("LastUptime: $LastUptime LastAcceptedConn: $LastAcceptedConn LastMaxChildrenReached: $LastMaxChildrenReached LastMaxListenQueue: $LastMaxListenQueue \n");
         }
     }
 
-    open ($FH, '>'.$TempFile) or nagios_exit($phpfpm,"UNKNOWN","unable to write temporary data in :".$TempFile);
+    open ($FH, '>', $TempFile) or nagios_exit($phpfpm,"UNKNOWN","unable to write temporary data in :".$TempFile);
     print $FH "$Uptime\n";
     print $FH "$AcceptedConn\n";
     print $FH "$MaxChildrenReached\n";
     print $FH "$MaxListenQueue\n";
     close ($FH);
+    if (defined ($o_debug)) {
+        print ("Debug: wrote data to temporary file:\n");
+        print (" Uptime: $Uptime\n AcceptedConn: $AcceptedConn\n MaxChildrenReached: $MaxChildrenReached\n MaxListenQueue: $MaxListenQueue\n\n");
+    }
 
     my $ReqPerSec = 0;
     my $Accesses = 0;
