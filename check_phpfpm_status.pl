@@ -48,6 +48,7 @@ my $o_warn_threshold= undef;     # warning thresholds entry
 my $o_crit_threshold= undef;     # critical thresholds entry
 my $o_debug=          undef;     # debug mode
 my $o_fastcgi=        undef;     # direct fastcgi mode (without an http->fastcgi proxy)
+my $o_unixsocket=     undef;     # use a UNIX socket (in direct fastcgi mode)
 my $o_servername=     undef;     # ServerName (host header in http request)
 my $o_https=          undef;     # SSL (HTTPS) mode
 my $o_verify_ssl=     0;         # SSL verification, False by default
