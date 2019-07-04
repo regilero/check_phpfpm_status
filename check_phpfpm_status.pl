@@ -108,7 +108,7 @@ sub help {
    ServerName, (host header of HTTP request) use it if you specified an IP in -H to match the good Virtualhost in your target
 -f, --fastcgi
    Connect directly to php-fpm via network or local socket, using fastcgi protocol instead of HTTP.
--u, --unixsocket
+--unixsocket
    Connect to php-fpm via UNIX socket, implies --fastcgi
 -U, --user=user
    Username for basic auth
@@ -212,8 +212,8 @@ sub check_options {
       'r:s'   => \$o_realm,         'realm:s'          => \$o_realm,
       'p:i'   => \$o_port,          'port:i'           => \$o_port,
       'V'     => \$o_version,       'version'          => \$o_version,
-      'w=s'   => \$o_warn_threshold, 'warn=s'           => \$o_warn_threshold,
-      'c=s'   => \$o_crit_threshold, 'critical=s'       => \$o_crit_threshold,
+      'w=s'   => \$o_warn_threshold, 'warn=s'          => \$o_warn_threshold,
+      'c=s'   => \$o_crit_threshold, 'critical=s'      => \$o_crit_threshold,
       't:i'   => \$o_timeout,       'timeout:i'        => \$o_timeout,
       'x:i'   => \$o_verify_ssl,    'verifyhostname:i' => \$o_verify_ssl,
                                     'verifyssl:i'      => \$o_verify_ssl,
